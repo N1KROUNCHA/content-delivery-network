@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logging-service
+  namespace: default
+  labels:
+    app: logging-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: logging-service
+  template:
+    metadata:
+      labels:
+        app: logging-service
+    spec:
+      containers:
+        - name: logging-service
+          image: secure-dist/logging-service:1.0.0
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8085
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: logging-service
+  namespace: default
+spec:
+  ports:
+    - port: 8085
+      targetPort: 8085
+  selector:
+    app: logging-service

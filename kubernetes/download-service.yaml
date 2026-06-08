@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: download-service
+  namespace: default
+  labels:
+    app: download-service
+spec:
+  replicas: 3 # Scale for crypto load balancing
+  selector:
+    matchLabels:
+      app: download-service
+  template:
+    metadata:
+      labels:
+        app: download-service
+    spec:
+      containers:
+        - name: download-service
+          image: secure-dist/download-service:1.0.0
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8083
+          env:
+            - name: SERVICES_CONTENT_URL
+              value: "http://content-service:8082"
+            - name: SERVICES_VERIFICATION_URL
+              value: "http://verification-service:8084"
+            - name: SERVICES_LOGGING_URL
+              value: "http://logging-service:8085"
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: download-service
+  namespace: default
+spec:
+  ports:
+    - port: 8083
+      targetPort: 8083
+  selector:
+    app: download-service

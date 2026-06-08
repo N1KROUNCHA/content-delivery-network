@@ -1,0 +1,117 @@
+version: '3.8'
+
+services:
+  logging-service:
+    build:
+      context: ./logging-service
+      dockerfile: Dockerfile
+    container_name: logging-service
+    ports:
+      - "8085:8085"
+    networks:
+      - secure-dist-net
+
+  verification-service:
+    build:
+      context: ./verification-service
+      dockerfile: Dockerfile
+    container_name: verification-service
+    ports:
+      - "8084:8084"
+    volumes:
+      - ./keys:/app/keys
+    environment:
+      - SERVICES_LOGGING_URL=http://logging-service:8085
+    depends_on:
+      - logging-service
+    networks:
+      - secure-dist-net
+
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    container_name: auth-service
+    ports:
+      - "8081:8081"
+    environment:
+      - SERVICES_LOGGING_URL=http://logging-service:8085
+    depends_on:
+      - logging-service
+    networks:
+      - secure-dist-net
+
+  content-service:
+    build:
+      context: ./content-service
+      dockerfile: Dockerfile
+    container_name: content-service
+    ports:
+      - "8082:8082"
+    volumes:
+      - ./uploads:/app/uploads
+    environment:
+      - SERVICES_VERIFICATION_URL=http://verification-service:8084
+      - SERVICES_LOGGING_URL=http://logging-service:8085
+    depends_on:
+      - verification-service
+      - logging-service
+    networks:
+      - secure-dist-net
+
+  download-service:
+    build:
+      context: ./download-service
+      dockerfile: Dockerfile
+    container_name: download-service
+    ports:
+      - "8083:8083"
+    environment:
+      - SERVICES_CONTENT_URL=http://content-service:8082
+      - SERVICES_VERIFICATION_URL=http://verification-service:8084
+      - SERVICES_LOGGING_URL=http://logging-service:8085
+    depends_on:
+      - content-service
+      - verification-service
+      - logging-service
+    networks:
+      - secure-dist-net
+
+  gateway-service:
+    build:
+      context: ./gateway-service
+      dockerfile: Dockerfile
+    container_name: gateway-service
+    ports:
+      - "8080:8080"
+    environment:
+      - SERVICES_AUTH_URL=http://auth-service:8081
+      - SERVICES_CONTENT_URL=http://content-service:8082
+      - SERVICES_DOWNLOAD_URL=http://download-service:8083
+      - SERVICES_LOGGING_URL=http://logging-service:8085
+    depends_on:
+      - auth-service
+      - content-service
+      - download-service
+    networks:
+      - secure-dist-net
+
+  demo-client:
+    build:
+      context: ./demo-client
+      dockerfile: Dockerfile
+    container_name: demo-client
+    ports:
+      - "8086:8086"
+    volumes:
+      - ./client_downloads:/app/client_downloads
+    environment:
+      - SERVICES_GATEWAY_URL=http://gateway-service:8080/api
+    depends_on:
+      - gateway-service
+    networks:
+      - secure-dist-net
+
+networks:
+  secure-dist-net:
+    driver: bridge

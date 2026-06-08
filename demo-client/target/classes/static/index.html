@@ -1,0 +1,2013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PQC Secure Distribution — Microservices Console</title>
+    <meta name="description" content="Post-Quantum Cryptography Secure Content Distribution System — Distributed Microservices Architecture with Kyber-768 and Dilithium3">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"></noscript>
+    <style>
+        :root {
+            --bg: #060b14;
+            --bg2: #0d1520;
+            --card: rgba(13, 21, 32, 0.85);
+            --border: rgba(255,255,255,0.07);
+            --border-active: rgba(99,102,241,0.4);
+            --primary: #6366f1;
+            --primary-dim: rgba(99,102,241,0.15);
+            --teal: #06b6d4;
+            --teal-dim: rgba(6,182,212,0.12);
+            --green: #10b981;
+            --green-dim: rgba(16,185,129,0.12);
+            --rose: #f43f5e;
+            --rose-dim: rgba(244,63,94,0.12);
+            --amber: #f59e0b;
+            --amber-dim: rgba(245,158,11,0.12);
+            --purple: #a855f7;
+            --purple-dim: rgba(168,85,247,0.12);
+            --text: #f1f5f9;
+            --text-muted: #64748b;
+            --text-dim: #94a3b8;
+            --mono: 'JetBrains Mono', monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            background-image:
+                radial-gradient(ellipse at 15% 10%, rgba(99,102,241,0.12) 0%, transparent 55%),
+                radial-gradient(ellipse at 85% 85%, rgba(6,182,212,0.08) 0%, transparent 55%),
+                radial-gradient(ellipse at 50% 50%, rgba(168,85,247,0.04) 0%, transparent 70%);
+            background-attachment: fixed;
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ======= SCROLLBAR ======= */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(99,102,241,0.3); border-radius: 99px; }
+
+        /* ======= HEADER ======= */
+        header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 2rem; height: 64px;
+            background: rgba(6,11,20,0.92);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; z-index: 200;
+        }
+        .logo { display: flex; align-items: center; gap: 0.75rem; text-decoration: none; }
+        .logo-icon {
+            width: 36px; height: 36px; border-radius: 10px;
+            background: linear-gradient(135deg, var(--primary), var(--teal));
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1rem; color: white;
+            box-shadow: 0 0 20px rgba(99,102,241,0.5);
+        }
+        .logo-info h1 { font-family: 'Outfit', sans-serif; font-size: 1.05rem; font-weight: 700; color: white; line-height: 1.1; }
+        .logo-info p { font-size: 0.68rem; color: var(--teal); letter-spacing: 0.08em; text-transform: uppercase; }
+
+        .header-nav { display: flex; align-items: center; gap: 0.25rem; }
+        .nav-tab {
+            padding: 0.4rem 0.85rem; border-radius: 8px; font-size: 0.83rem; font-weight: 500;
+            cursor: pointer; border: none; background: transparent; color: var(--text-muted);
+            transition: all 0.2s; position: relative;
+        }
+        .nav-tab:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+        .nav-tab.active { color: white; background: var(--primary-dim); }
+        .nav-tab.active::after {
+            content: ''; position: absolute; bottom: -1px; left: 50%; transform: translateX(-50%);
+            width: 60%; height: 2px; background: var(--primary); border-radius: 2px 2px 0 0;
+        }
+        .header-right { display: flex; align-items: center; gap: 0.75rem; }
+        .user-pill {
+            display: flex; align-items: center; gap: 0.5rem;
+            padding: 0.35rem 0.85rem; border-radius: 99px;
+            background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+            font-size: 0.8rem; color: var(--text-dim);
+        }
+        .pulse-dot {
+            width: 7px; height: 7px; border-radius: 50%; background: var(--rose);
+            transition: all 0.3s;
+        }
+        .pulse-dot.online { background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse-glow 2s infinite; }
+        @keyframes pulse-glow { 0%,100%{box-shadow:0 0 6px var(--green)} 50%{box-shadow:0 0 14px var(--green)} }
+        .btn-logout {
+            padding: 0.35rem 0.85rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600;
+            border: 1px solid rgba(244,63,94,0.3); background: var(--rose-dim); color: #fda4af;
+            cursor: pointer; transition: all 0.2s; display: none;
+        }
+        .btn-logout:hover { background: rgba(244,63,94,0.2); border-color: var(--rose); }
+
+        /* ======= VIEWS ======= */
+        .view { display: none; animation: fadeIn 0.3s ease; }
+        .view.active { display: block; }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+
+        /* ======= LAYOUT ======= */
+        .page { max-width: 1440px; margin: 0 auto; padding: 1.5rem 2rem 3rem; }
+        .page-header { margin-bottom: 1.5rem; }
+        .page-header h2 { font-family:'Outfit',sans-serif; font-size:1.5rem; font-weight:700; color:white; }
+        .page-header p { font-size:0.85rem; color:var(--text-muted); margin-top:0.25rem; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+        .grid-auto { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+        .col-span-2 { grid-column: span 2; }
+        .col-span-3 { grid-column: span 3; }
+
+        /* ======= CARD ======= */
+        .card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 16px; padding: 1.25rem;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+            transition: border-color 0.25s;
+        }
+        .card:hover { border-color: rgba(99,102,241,0.18); }
+        .card-hd {
+            display: flex; align-items: center; gap: 0.5rem;
+            margin-bottom: 1rem; padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border);
+        }
+        .card-hd h3 { font-family:'Outfit',sans-serif; font-size:0.95rem; font-weight:600; color:white; flex:1; }
+        .card-hd .tag {
+            font-size:0.65rem; font-weight:700; padding:0.15rem 0.5rem; border-radius:4px;
+            text-transform:uppercase; letter-spacing:0.07em;
+        }
+        .tag-green { background:var(--green-dim); color:#34d399; border:1px solid rgba(16,185,129,0.25); }
+        .tag-blue { background:var(--primary-dim); color:#a5b4fc; border:1px solid rgba(99,102,241,0.25); }
+        .tag-teal { background:var(--teal-dim); color:#22d3ee; border:1px solid rgba(6,182,212,0.25); }
+        .tag-amber { background:var(--amber-dim); color:#fbbf24; border:1px solid rgba(245,158,11,0.25); }
+        .tag-purple { background:var(--purple-dim); color:#c084fc; border:1px solid rgba(168,85,247,0.25); }
+        .tag-rose { background:var(--rose-dim); color:#fb7185; border:1px solid rgba(244,63,94,0.25); }
+
+        /* ======= SERVICE HEALTH CARDS ======= */
+        .svc-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.75rem; }
+        @media(max-width:1100px) { .svc-grid { grid-template-columns: repeat(4,1fr); } }
+        @media(max-width:700px)  { .svc-grid { grid-template-columns: repeat(2,1fr); } }
+
+        .svc-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 14px; padding: 1rem;
+            display: flex; flex-direction: column; gap: 0.5rem;
+            transition: all 0.3s; cursor: default;
+        }
+        .svc-card:hover { transform: translateY(-3px); border-color: var(--border-active); }
+        .svc-icon {
+            width: 38px; height: 38px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.1rem;
+        }
+        .svc-name { font-size: 0.78rem; font-weight: 600; color: var(--text-dim); }
+        .svc-port { font-family: var(--mono); font-size: 0.7rem; color: var(--text-muted); }
+        .svc-status {
+            display: flex; align-items: center; gap: 0.35rem;
+            font-size: 0.72rem; font-weight: 600; margin-top: auto;
+        }
+        .svc-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); }
+        .svc-dot.up { background: var(--green); box-shadow: 0 0 6px var(--green); }
+        .svc-dot.checking { background: var(--amber); animation: pulse-glow 1s infinite; }
+        .svc-dot.down { background: var(--rose); }
+        .tag-cyan { background: rgba(6,182,212,0.12); color: #22d3ee; border: 1px solid rgba(6,182,212,0.25); }
+
+        /* API Gateway Inspector Animations */
+        @keyframes pulse-flow {
+            0% { top: 0%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+        .pulse-active {
+            animation: pulse-flow 1.2s infinite linear !important;
+        }
+        .node-success {
+            background: rgba(16, 185, 129, 0.25) !important;
+            border-color: var(--green) !important;
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+        }
+        .node-error {
+            background: rgba(244, 63, 94, 0.25) !important;
+            border-color: var(--rose) !important;
+            box-shadow: 0 0 15px rgba(244, 63, 94, 0.4);
+        }
+        .line-active-green {
+            background: var(--green) !important;
+            box-shadow: 0 0 8px var(--green);
+        }
+        .line-active-red {
+            background: var(--rose) !important;
+            box-shadow: 0 0 8px var(--rose);
+        }
+
+        /* ======= ARCHITECTURE MAP ======= */
+        .arch-map {
+            background: rgba(6,11,20,0.8); border: 1px solid var(--border);
+            border-radius: 16px; padding: 1.5rem;
+            position: relative; overflow: hidden; min-height: 300px;
+        }
+        .arch-title { font-family: var(--mono); font-size: 0.7rem; color: var(--text-muted); margin-bottom: 1.25rem; letter-spacing:0.1em; text-transform:uppercase; }
+        .arch-flow {
+            display: flex; align-items: center; justify-content: center;
+            gap: 0; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 0.5rem;
+        }
+        .arch-node {
+            display: flex; flex-direction: column; align-items: center; gap: 0.4rem;
+            min-width: 90px; padding: 0.75rem 0.5rem; border-radius: 12px;
+            border: 1px solid var(--border); background: rgba(255,255,255,0.03);
+            transition: all 0.3s; flex-shrink: 0;
+        }
+        .arch-node:hover { border-color: rgba(99,102,241,0.4); background: var(--primary-dim); }
+        .arch-node .icon { font-size: 1.4rem; }
+        .arch-node .name { font-size: 0.65rem; font-weight: 600; color: var(--text-dim); text-align: center; }
+        .arch-node .port-badge { font-family: var(--mono); font-size: 0.6rem; color: var(--text-muted); background: rgba(0,0,0,0.3); padding: 0.1rem 0.35rem; border-radius: 4px; }
+        .arch-arrow {
+            display: flex; flex-direction: column; align-items: center; flex-shrink: 0;
+            padding: 0 0.25rem;
+        }
+        .arch-arrow .line {
+            width: 32px; height: 2px;
+            background: linear-gradient(to right, rgba(99,102,241,0.3), rgba(6,182,212,0.3));
+            position: relative;
+        }
+        .arch-arrow .line::after {
+            content: '▶'; position: absolute; right: -6px; top: -6px;
+            font-size: 0.55rem; color: var(--teal); opacity: 0.8;
+        }
+        .arch-arrow .proto { font-size: 0.55rem; color: var(--text-muted); margin-top: 0.2rem; }
+        .arch-branches {
+            display: flex; flex-direction: column; gap: 0.5rem; flex-shrink: 0;
+        }
+        .arch-branch-node {
+            display: flex; flex-direction: column; align-items: center; gap: 0.25rem;
+            min-width: 80px; padding: 0.6rem 0.5rem; border-radius: 10px;
+            border: 1px solid var(--border); background: rgba(255,255,255,0.02);
+            transition: all 0.3s;
+        }
+        .arch-branch-node:hover { border-color: rgba(6,182,212,0.4); background: var(--teal-dim); }
+        .arch-branch-node .icon { font-size: 1.1rem; }
+        .arch-branch-node .name { font-size: 0.6rem; font-weight: 600; color: var(--text-muted); text-align: center; }
+
+        /* ======= STATS ======= */
+        .stat-card {
+            background: var(--card); border: 1px solid var(--border);
+            border-radius: 14px; padding: 1.1rem 1.25rem;
+            display: flex; flex-direction: column; gap: 0.4rem;
+        }
+        .stat-label { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; }
+        .stat-val { font-family: 'Outfit', sans-serif; font-size: 2rem; font-weight: 700; color: white; line-height: 1; }
+        .stat-sub { font-size: 0.75rem; color: var(--text-muted); }
+        .stat-icon { font-size: 1.5rem; margin-bottom: 0.25rem; }
+
+        /* ======= FORM ELEMENTS ======= */
+        .form-group { margin-bottom: 0.9rem; }
+        .form-group label { display: block; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.35rem; font-weight: 500; }
+        .form-group input, .form-group select {
+            width: 100%; background: rgba(6,11,20,0.8); border: 1px solid var(--border);
+            border-radius: 9px; padding: 0.65rem 0.9rem; color: white;
+            font-family: inherit; font-size: 0.9rem; transition: all 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+        }
+        .form-group select option { background: #0d1520; }
+
+        .btn {
+            width: 100%; padding: 0.7rem 1.25rem; border-radius: 9px;
+            font-family: 'Outfit', sans-serif; font-size: 0.95rem; font-weight: 600;
+            cursor: pointer; border: none; transition: all 0.25s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            color: white; box-shadow: 0 4px 15px rgba(99,102,241,0.3);
+        }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(99,102,241,0.4); }
+        .btn-primary:disabled { background: rgba(255,255,255,0.06); color: var(--text-muted); box-shadow: none; cursor: not-allowed; transform: none; }
+        .btn-outline {
+            background: transparent; border: 1px solid var(--primary); color: var(--text);
+        }
+        .btn-outline:hover { background: var(--primary-dim); }
+        .btn-teal { background: linear-gradient(135deg, #0891b2, #06b6d4); color: white; box-shadow: 0 4px 15px rgba(6,182,212,0.25); }
+        .btn-teal:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(6,182,212,0.35); }
+        .btn-sm { padding: 0.4rem 0.85rem; font-size: 0.8rem; width: auto; border-radius: 7px; }
+
+        .alert-box {
+            padding: 0.75rem 1rem; border-radius: 9px; font-size: 0.85rem;
+            margin-bottom: 0.75rem; display: none;
+        }
+        .alert-error { background: var(--rose-dim); border: 1px solid rgba(244,63,94,0.3); color: #fda4af; }
+        .alert-success { background: var(--green-dim); border: 1px solid rgba(16,185,129,0.3); color: #a7f3d0; }
+        .alert-info { background: var(--teal-dim); border: 1px solid rgba(6,182,212,0.3); color: #67e8f9; }
+
+        /* ======= VERSION CARDS ======= */
+        .pkg-card {
+            background: rgba(255,255,255,0.025); border: 1px solid var(--border);
+            border-radius: 13px; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem;
+            transition: all 0.25s; position: relative; overflow: hidden;
+        }
+        .pkg-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(to right, var(--primary), var(--teal)); opacity: 0;
+            transition: opacity 0.25s;
+        }
+        .pkg-card:hover { border-color: rgba(99,102,241,0.25); background: rgba(99,102,241,0.05); transform: translateY(-2px); }
+        .pkg-card:hover::before { opacity: 1; }
+        .pkg-name { font-weight: 600; color: white; font-size: 0.95rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .pkg-meta { display: flex; flex-direction: column; gap: 0.2rem; }
+        .pkg-meta-row { display: flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; color: var(--text-muted); }
+        .mono { font-family: var(--mono); }
+        .hash-text { font-family: var(--mono); font-size: 0.7rem; color: var(--text-muted); background: rgba(0,0,0,0.25); padding: 0.2rem 0.5rem; border-radius: 5px; word-break: break-all; }
+        .badge {
+            display: inline-flex; align-items: center;
+            padding: 0.15rem 0.5rem; border-radius: 5px; font-size: 0.7rem; font-weight: 700;
+        }
+        .badge-ver { background: var(--primary-dim); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.25); }
+        .badge-signed { background: var(--green-dim); color: #34d399; border: 1px solid rgba(16,185,129,0.25); }
+
+        /* ======= TRACE ENGINE ======= */
+        .trace-terminal {
+            font-family: var(--mono); background: #020817; border: 1px solid rgba(99,102,241,0.15);
+            border-radius: 13px; max-height: 480px; overflow-y: auto;
+        }
+        .trace-terminal-hd {
+            display: flex; align-items: center; gap: 0.5rem; padding: 0.65rem 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            background: rgba(255,255,255,0.02); border-radius: 13px 13px 0 0;
+        }
+        .term-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .term-dot.red { background: #ff5f57; }
+        .term-dot.yellow { background: #febc2e; }
+        .term-dot.green { background: #28c840; }
+        .term-label { font-size: 0.7rem; color: var(--text-muted); margin-left: 0.5rem; }
+        .trace-body { padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem; }
+        .trace-step {
+            display: flex; gap: 0.75rem; border-left: 2px solid rgba(255,255,255,0.07);
+            padding-left: 0.9rem; padding-top: 0.1rem; padding-bottom: 0.25rem;
+            position: relative; transition: border-color 0.3s;
+        }
+        .trace-step::before {
+            content: ''; position: absolute; left: -5px; top: 4px;
+            width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.1);
+            transition: all 0.3s;
+        }
+        .trace-step.pending::before { background: rgba(255,255,255,0.1); }
+        .trace-step.running { border-left-color: var(--primary); }
+        .trace-step.running::before { background: var(--primary); box-shadow: 0 0 8px var(--primary); animation: ping 1s infinite; }
+        .trace-step.success { border-left-color: var(--green); }
+        .trace-step.success::before { background: var(--green); box-shadow: 0 0 6px var(--green); }
+        .trace-step.failed { border-left-color: var(--rose); }
+        .trace-step.failed::before { background: var(--rose); box-shadow: 0 0 6px var(--rose); }
+        @keyframes ping { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.5);opacity:0.6} }
+        .trace-step-content { flex: 1; }
+        .trace-step-title { font-size: 0.8rem; font-weight: 700; color: #e2e8f0; }
+        .trace-step-detail {
+            margin-top: 0.3rem; font-size: 0.72rem; color: var(--text-muted);
+            background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04);
+            border-radius: 6px; padding: 0.4rem 0.6rem; white-space: pre-wrap; word-break: break-all;
+        }
+        .trace-step-detail .success-val { color: #34d399; }
+        .trace-step-detail .key-val { color: #93c5fd; }
+        .trace-step-detail .timing { color: var(--amber); }
+
+        /* ======= LOGS TABLE ======= */
+        .log-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        .log-table th {
+            padding: 0.6rem 0.85rem; text-align: left; font-size: 0.7rem; font-weight: 600;
+            color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em;
+            background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border);
+        }
+        .log-table td { padding: 0.6rem 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.03); vertical-align: top; }
+        .log-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+        .log-table tbody tr:last-child td { border-bottom: none; }
+        .svc-tag {
+            font-family: var(--mono); font-size: 0.68rem; background: rgba(255,255,255,0.06);
+            border: 1px solid var(--border); color: var(--text-dim);
+            padding: 0.1rem 0.4rem; border-radius: 4px; white-space: nowrap;
+        }
+        .status-chip {
+            padding: 0.15rem 0.5rem; border-radius: 4px; font-size: 0.68rem; font-weight: 700;
+            white-space: nowrap;
+        }
+        .chip-success { background: var(--green-dim); color: #34d399; border: 1px solid rgba(16,185,129,0.25); }
+        .chip-failure { background: var(--rose-dim); color: #fb7185; border: 1px solid rgba(244,63,94,0.25); }
+        .chip-info    { background: var(--teal-dim); color: #22d3ee; border: 1px solid rgba(6,182,212,0.25); }
+
+        /* ======= AUTH VIEW ======= */
+        .auth-view-wrapper {
+            min-height: calc(100vh - 64px); display: flex; align-items: center; justify-content: center;
+            padding: 2rem;
+        }
+        .auth-panel {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 0; max-width: 880px; width: 100%;
+            background: var(--card); border: 1px solid var(--border); border-radius: 20px;
+            overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+        }
+        .auth-left {
+            background: linear-gradient(145deg, rgba(99,102,241,0.12), rgba(6,182,212,0.08));
+            border-right: 1px solid var(--border);
+            padding: 2.5rem; display: flex; flex-direction: column; justify-content: space-between;
+        }
+        .auth-left-brand h2 { font-family:'Outfit',sans-serif; font-size:1.5rem; font-weight:700; color:white; margin-bottom:0.5rem; }
+        .auth-left-brand p { font-size:0.82rem; color:var(--text-muted); line-height:1.6; }
+        .arch-services { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1.5rem; }
+        .arch-svc-row {
+            display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.7rem;
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px;
+        }
+        .arch-svc-row span:first-child { font-size: 0.9rem; }
+        .arch-svc-row .sn { font-size: 0.75rem; font-weight: 600; color: var(--text-dim); }
+        .arch-svc-row .sp { font-family: var(--mono); font-size: 0.65rem; color: var(--text-muted); margin-left: auto; }
+        .auth-right { padding: 2.5rem; }
+        .auth-right h3 { font-family: 'Outfit', sans-serif; font-size: 1.2rem; font-weight: 700; color: white; margin-bottom: 1.5rem; }
+        .tab-switcher { display: flex; gap: 0.25rem; background: rgba(255,255,255,0.04); border-radius: 9px; padding: 0.25rem; margin-bottom: 1.25rem; }
+        .tab-pill {
+            flex: 1; padding: 0.45rem; text-align: center; font-size: 0.82rem; font-weight: 600;
+            border-radius: 7px; cursor: pointer; color: var(--text-muted); transition: all 0.2s; border: none; background: transparent;
+        }
+        .tab-pill.active { background: var(--primary); color: white; box-shadow: 0 2px 8px rgba(99,102,241,0.4); }
+        .toggle-link { text-align: center; font-size: 0.8rem; color: var(--text-muted); margin-top: 0.75rem; }
+        .toggle-link span { color: var(--teal); cursor: pointer; font-weight: 600; }
+        @media(max-width: 640px) {
+            .auth-panel { grid-template-columns: 1fr; }
+            .auth-left { display: none; }
+        }
+
+        /* ======= UPLOAD ZONE ======= */
+        .drop-zone {
+            border: 2px dashed rgba(99,102,241,0.25); border-radius: 10px;
+            padding: 1.5rem; text-align: center; cursor: pointer;
+            transition: all 0.25s; background: rgba(99,102,241,0.04);
+            margin-bottom: 0.9rem;
+        }
+        .drop-zone:hover, .drop-zone.drag-over {
+            border-color: var(--primary); background: var(--primary-dim);
+        }
+        .drop-zone .dz-icon { font-size: 1.8rem; margin-bottom: 0.5rem; }
+        .drop-zone .dz-text { font-size: 0.82rem; color: var(--text-muted); }
+        .drop-zone .dz-file { font-size: 0.85rem; color: var(--teal); font-weight: 600; }
+        #fileInputHidden { display: none; }
+
+        /* ======= MISC ======= */
+        .divider { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
+        .empty-state { text-align: center; padding: 2.5rem 1rem; color: var(--text-muted); font-size: 0.85rem; }
+        .empty-state .es-icon { font-size: 2rem; margin-bottom: 0.5rem; display: block; }
+        .loading-dots::after { content: '...'; animation: dots 1.2s infinite; }
+        @keyframes dots { 0%{content:'.'} 33%{content:'..'} 66%{content:'...'} }
+        .chip-row { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+        .info-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; margin-bottom: 0.4rem; }
+        .info-row .lbl { color: var(--text-muted); }
+        .info-row .val { color: var(--text-dim); font-family: var(--mono); font-size: 0.75rem; }
+
+        @media(max-width: 900px) {
+            .grid-3, .grid-2 { grid-template-columns: 1fr; }
+            .col-span-2, .col-span-3 { grid-column: span 1; }
+            .page { padding: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">
+        <div class="logo-icon">Q</div>
+        <div class="logo-info">
+            <h1>PQC Secure Distribution</h1>
+            <p>Distributed Microservices · Post-Quantum Cryptography</p>
+        </div>
+    </div>
+
+    <nav class="header-nav" id="mainNav" style="display:none">
+        <button class="nav-tab active" id="navOverview" onclick="switchView('overview')">🏛 Architecture</button>
+        <button class="nav-tab" id="navAdmin" onclick="switchView('admin')">⚙️ Admin Console</button>
+        <button class="nav-tab" id="navClient" onclick="switchView('client')">📦 Client Terminal</button>
+        <button class="nav-tab" id="navGateway" onclick="switchView('gateway')">🌐 API Gateway</button>
+        <button class="nav-tab" id="navSecurity" onclick="switchView('security')">Security Lab</button>
+        <button class="nav-tab" id="navLogs" onclick="switchView('logs')">📊 Audit Logs</button>
+    </nav>
+
+    <div class="header-right">
+        <div class="user-pill">
+            <div class="pulse-dot" id="pulseDot"></div>
+            <span id="userLabel">Not Authenticated</span>
+        </div>
+        <button class="btn-logout" id="logoutBtn" onclick="logout()">Logout</button>
+    </div>
+</header>
+
+<!-- ===== AUTH VIEW ===== -->
+<div class="view active" id="viewAuth">
+    <div class="auth-view-wrapper">
+        <div class="auth-panel">
+            <div class="auth-left">
+                <div>
+                    <div class="logo-icon" style="margin-bottom:1rem; width:44px;height:44px;font-size:1.3rem;">Q</div>
+                    <div class="auth-left-brand">
+                        <h2>Post-Quantum Cryptography<br>Microservices System</h2>
+                        <p>7 independent microservices secured with NIST-standardized algorithms: <strong>Kyber-768</strong> (KEM) and <strong>Dilithium3</strong> (DSA)</p>
+                    </div>
+                    <div class="arch-services">
+                        <div class="arch-svc-row"><span>🔐</span><span class="sn">Auth Service</span><span class="sp">:8081</span></div>
+                        <div class="arch-svc-row"><span>🌐</span><span class="sn">API Gateway</span><span class="sp">:8080</span></div>
+                        <div class="arch-svc-row"><span>📁</span><span class="sn">Content Service</span><span class="sp">:8082</span></div>
+                        <div class="arch-svc-row"><span>📥</span><span class="sn">Download Service</span><span class="sp">:8083</span></div>
+                        <div class="arch-svc-row"><span>🔏</span><span class="sn">Verification Service</span><span class="sp">:8084</span></div>
+                        <div class="arch-svc-row"><span>📊</span><span class="sn">Logging Service</span><span class="sp">:8085</span></div>
+                        <div class="arch-svc-row"><span>💻</span><span class="sn">Demo Client</span><span class="sp">:8086</span></div>
+                    </div>
+                </div>
+                <p style="font-size:0.7rem;color:var(--text-muted);margin-top:1rem;">All inter-service communication routes through the API Gateway with JWT validation per request.</p>
+            </div>
+            <div class="auth-right">
+                <h3 id="authHeading">🔐 Sign In</h3>
+                <div class="tab-switcher">
+                    <button class="tab-pill active" id="tabLogin" onclick="setAuthMode('login')">Login</button>
+                    <button class="tab-pill" id="tabRegister" onclick="setAuthMode('register')">Register</button>
+                </div>
+                <div id="authAlert" class="alert-box alert-error"></div>
+                <form id="authForm" onsubmit="handleAuth(event)">
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" id="username" required placeholder="e.g. admin">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="password" required placeholder="••••••••">
+                    </div>
+                    <div class="form-group" id="roleGroup" style="display:none">
+                        <label>Register As</label>
+                        <select id="role">
+                            <option value="ADMIN">🛡 Admin — Upload & Sign packages</option>
+                            <option value="USER">👤 User — Download & Verify packages</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary" id="authSubmit">Sign In</button>
+                </form>
+                <div class="toggle-link" id="toggleLink">
+                    No account? <span onclick="setAuthMode('register')">Register here</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== OVERVIEW VIEW ===== -->
+<div class="view" id="viewOverview">
+    <div class="page">
+        <div class="page-header">
+            <h2>🏛 System Architecture Overview</h2>
+            <p>Real-time health monitoring and distributed service topology for the PQC microservices cluster</p>
+        </div>
+
+        <!-- Stats row -->
+        <div class="grid-3" style="margin-bottom:1rem;">
+            <div class="stat-card">
+                <div class="stat-icon">🖥</div>
+                <div class="stat-label">Active Microservices</div>
+                <div class="stat-val" id="statActiveServices">—</div>
+                <div class="stat-sub">of 7 containers running</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📦</div>
+                <div class="stat-label">Packages in Catalog</div>
+                <div class="stat-val" id="statPackages">—</div>
+                <div class="stat-sub">Dilithium-signed software packages</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">📝</div>
+                <div class="stat-label">Audit Events Logged</div>
+                <div class="stat-val" id="statLogs">—</div>
+                <div class="stat-sub">Cross-service audit trail entries</div>
+            </div>
+        </div>
+
+        <!-- Service health grid -->
+        <div class="card" style="margin-bottom:1rem;">
+            <div class="card-hd">
+                <h3>Microservice Health Monitor</h3>
+                <span class="tag tag-green">Live</span>
+            </div>
+            <div class="svc-grid">
+                <div class="svc-card" id="hc-auth">
+                    <div class="svc-icon" style="background:rgba(99,102,241,0.12)">🔐</div>
+                    <div class="svc-name">Auth Service</div>
+                    <div class="svc-port">:8081 / JWT</div>
+                    <div class="svc-status"><div class="svc-dot checking"></div> Checking…</div>
+                </div>
+                <div class="svc-card" id="hc-gateway">
+                    <div class="svc-icon" style="background:rgba(6,182,212,0.12)">🌐</div>
+                    <div class="svc-name">API Gateway</div>
+                    <div class="svc-port">:8080 / HTTP</div>
+                    <div class="svc-status"><div class="svc-dot checking"></div> Checking…</div>
+                </div>
+                <div class="svc-card" id="hc-content">
+                    <div class="svc-icon" style="background:rgba(16,185,129,0.12)">📁</div>
+                    <div class="svc-name">Content Service</div>
+                    <div class="svc-port">:8082 / REST</div>
+                    <div class="svc-status"><div class="svc-dot checking"></div> Checking…</div>
+                </div>
+                <div class="svc-card" id="hc-download">
+                    <div class="svc-icon" style="background:rgba(245,158,11,0.12)">📥</div>
+                    <div class="svc-name">Download Service</div>
+                    <div class="svc-port">:8083 / REST</div>
+                    <div class="svc-status"><div class="svc-dot checking"></div> Checking…</div>
+                </div>
+                <div class="svc-card" id="hc-verify">
+                    <div class="svc-icon" style="background:rgba(168,85,247,0.12)">🔏</div>
+                    <div class="svc-name">Verification Svc</div>
+                    <div class="svc-port">:8084 / REST</div>
+                    <div class="svc-status"><div class="svc-dot checking"></div> Checking…</div>
+                </div>
+                <div class="svc-card" id="hc-logging">
+                    <div class="svc-icon" style="background:rgba(244,63,94,0.12)">📊</div>
+                    <div class="svc-name">Logging Service</div>
+                    <div class="svc-port">:8085 / REST</div>
+                    <div class="svc-status"><div class="svc-dot checking"></div> Checking…</div>
+                </div>
+                <div class="svc-card" id="hc-client">
+                    <div class="svc-icon" style="background:rgba(6,182,212,0.12)">💻</div>
+                    <div class="svc-name">Demo Client</div>
+                    <div class="svc-port">:8086 / UI</div>
+                    <div class="svc-status"><div class="svc-dot up"></div> Running</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Architecture Map -->
+        <div class="arch-map card" style="margin-bottom:1rem;">
+            <div class="card-hd" style="border-bottom:none;margin-bottom:0.75rem;">
+                <h3>Service Communication Topology</h3>
+                <span class="tag tag-teal">REST / HTTP</span>
+            </div>
+            <div class="arch-flow">
+                <!-- Client -->
+                <div class="arch-node" style="border-color:rgba(6,182,212,0.35);background:rgba(6,182,212,0.05)">
+                    <div class="icon">💻</div>
+                    <div class="name">Demo Client</div>
+                    <div class="port-badge">:8086</div>
+                </div>
+                <div class="arch-arrow"><div class="line"></div><div class="proto">JWT</div></div>
+                <!-- Gateway -->
+                <div class="arch-node" style="border-color:rgba(99,102,241,0.45);background:rgba(99,102,241,0.06)">
+                    <div class="icon">🌐</div>
+                    <div class="name">API Gateway</div>
+                    <div class="port-badge">:8080</div>
+                </div>
+                <div class="arch-arrow"><div class="line"></div><div class="proto">Route</div></div>
+                <!-- Branches -->
+                <div class="arch-branches">
+                    <div class="arch-branch-node" style="border-color:rgba(99,102,241,0.3)">
+                        <div class="icon">🔐</div>
+                        <div class="name">Auth Svc :8081</div>
+                    </div>
+                    <div class="arch-branch-node" style="border-color:rgba(16,185,129,0.3)">
+                        <div class="icon">📁</div>
+                        <div class="name">Content Svc :8082</div>
+                    </div>
+                    <div class="arch-branch-node" style="border-color:rgba(245,158,11,0.3)">
+                        <div class="icon">📥</div>
+                        <div class="name">Download Svc :8083</div>
+                    </div>
+                </div>
+                <div class="arch-arrow"><div class="line"></div><div class="proto">Internal</div></div>
+                <div class="arch-branches">
+                    <div class="arch-branch-node" style="border-color:rgba(168,85,247,0.3)">
+                        <div class="icon">🔏</div>
+                        <div class="name">Verify Svc :8084</div>
+                    </div>
+                    <div class="arch-branch-node" style="border-color:rgba(244,63,94,0.3)">
+                        <div class="icon">📊</div>
+                        <div class="name">Logging Svc :8085</div>
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top:1rem; display:flex; gap:1rem; flex-wrap:wrap;">
+                <div style="display:flex;align-items:center;gap:0.4rem;font-size:0.72rem;color:var(--text-muted)"><span style="width:12px;height:2px;background:var(--primary);display:inline-block;border-radius:1px"></span> JWT Auth Flow</div>
+                <div style="display:flex;align-items:center;gap:0.4rem;font-size:0.72rem;color:var(--text-muted)"><span style="width:12px;height:2px;background:var(--teal);display:inline-block;border-radius:1px"></span> Kyber-768 Key Exchange</div>
+                <div style="display:flex;align-items:center;gap:0.4rem;font-size:0.72rem;color:var(--text-muted)"><span style="width:12px;height:2px;background:var(--green);display:inline-block;border-radius:1px"></span> Dilithium3 Signing</div>
+                <div style="display:flex;align-items:center;gap:0.4rem;font-size:0.72rem;color:var(--text-muted)"><span style="width:12px;height:2px;background:var(--purple);display:inline-block;border-radius:1px"></span> AES-256-GCM Encryption</div>
+            </div>
+        </div>
+
+        <!-- Algorithm Cards -->
+        <div class="grid-3">
+            <div class="card">
+                <div class="card-hd"><h3>🔑 Kyber-768 KEM</h3><span class="tag tag-teal">NIST PQC</span></div>
+                <div class="info-row"><span class="lbl">Algorithm Type</span><span class="val">Lattice-based KEM</span></div>
+                <div class="info-row"><span class="lbl">Security Level</span><span class="val">NIST Level 3</span></div>
+                <div class="info-row"><span class="lbl">Public Key Size</span><span class="val">1,184 bytes</span></div>
+                <div class="info-row"><span class="lbl">Ciphertext Size</span><span class="val">1,088 bytes</span></div>
+                <div class="info-row"><span class="lbl">Shared Secret</span><span class="val">256 bits → AES Key</span></div>
+                <div class="info-row"><span class="lbl">Provider</span><span class="val">Bouncy Castle BCPQC</span></div>
+                <hr class="divider">
+                <p style="font-size:0.75rem;color:var(--text-muted)">Used in <strong>Download Service</strong>: client sends ephemeral Kyber public key; server encapsulates the AES-256 key and returns ciphertext.</p>
+            </div>
+            <div class="card">
+                <div class="card-hd"><h3>✍️ Dilithium3 DSA</h3><span class="tag tag-purple">NIST PQC</span></div>
+                <div class="info-row"><span class="lbl">Algorithm Type</span><span class="val">Lattice-based Signature</span></div>
+                <div class="info-row"><span class="lbl">Security Level</span><span class="val">NIST Level 3</span></div>
+                <div class="info-row"><span class="lbl">Public Key Size</span><span class="val">1,952 bytes</span></div>
+                <div class="info-row"><span class="lbl">Signature Size</span><span class="val">3,293 bytes</span></div>
+                <div class="info-row"><span class="lbl">Hash</span><span class="val">SHA-256 of file bytes</span></div>
+                <div class="info-row"><span class="lbl">Provider</span><span class="val">Bouncy Castle BCPQC</span></div>
+                <hr class="divider">
+                <p style="font-size:0.75rem;color:var(--text-muted)">Used in <strong>Verification Service</strong>: signs SHA-256 hash on upload; <strong>Demo Client</strong> verifies signature after decryption.</p>
+            </div>
+            <div class="card">
+                <div class="card-hd"><h3>🛡 AES-256-GCM</h3><span class="tag tag-green">Symmetric</span></div>
+                <div class="info-row"><span class="lbl">Algorithm</span><span class="val">AES-256-GCM</span></div>
+                <div class="info-row"><span class="lbl">Key Size</span><span class="val">256 bits (Kyber-derived)</span></div>
+                <div class="info-row"><span class="lbl">IV / Nonce</span><span class="val">96 bits (random)</span></div>
+                <div class="info-row"><span class="lbl">Auth Tag</span><span class="val">128 bits</span></div>
+                <div class="info-row"><span class="lbl">Purpose</span><span class="val">File payload encryption</span></div>
+                <div class="info-row"><span class="lbl">Provider</span><span class="val">Java Cryptography Extension</span></div>
+                <hr class="divider">
+                <p style="font-size:0.75rem;color:var(--text-muted)">File bytes are encrypted with AES key derived from Kyber KEM. IV prepended to ciphertext for decryption on client side.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== ADMIN VIEW ===== -->
+<div class="view" id="viewAdmin">
+    <div class="page">
+        <div class="page-header">
+            <h2>⚙️ Admin Console — Content Service</h2>
+            <p>Upload and cryptographically sign software packages via <code style="font-family:var(--mono);font-size:0.8rem;color:var(--teal)">POST /api/content/upload</code> → Content Service → Verification Service</p>
+        </div>
+        <div class="grid-2">
+            <!-- Upload Panel -->
+            <div class="card">
+                <div class="card-hd">
+                    <h3>📤 Upload & Sign Package</h3>
+                    <span class="tag tag-purple" id="adminRoleTag">ADMIN ONLY</span>
+                </div>
+                <div id="uploadAlert" class="alert-box"></div>
+
+                <!-- Upload flow diagram -->
+                <div style="display:flex;align-items:center;gap:0.4rem;margin-bottom:1rem;padding:0.65rem;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid var(--border);overflow-x:auto">
+                    <div style="text-align:center;flex-shrink:0"><div style="font-size:0.9rem">💻</div><div style="font-size:0.6rem;color:var(--text-muted)">Client</div></div>
+                    <div style="font-size:0.6rem;color:var(--primary);flex-shrink:0">→ multipart →</div>
+                    <div style="text-align:center;flex-shrink:0"><div style="font-size:0.9rem">🌐</div><div style="font-size:0.6rem;color:var(--text-muted)">Gateway</div></div>
+                    <div style="font-size:0.6rem;color:var(--teal);flex-shrink:0">→ proxy →</div>
+                    <div style="text-align:center;flex-shrink:0"><div style="font-size:0.9rem">📁</div><div style="font-size:0.6rem;color:var(--text-muted)">Content</div></div>
+                    <div style="font-size:0.6rem;color:var(--green);flex-shrink:0">→ hash+sign →</div>
+                    <div style="text-align:center;flex-shrink:0"><div style="font-size:0.9rem">🔏</div><div style="font-size:0.6rem;color:var(--text-muted)">Verify</div></div>
+                </div>
+
+                <div id="dropZone" class="drop-zone" onclick="document.getElementById('fileInputHidden').click()" ondragover="handleDragOver(event)" ondrop="handleDrop(event)" ondragleave="handleDragLeave(event)">
+                    <div class="dz-icon">📁</div>
+                    <div class="dz-text" id="dzText">Drop package here or <strong style="color:var(--primary)">browse</strong></div>
+                    <div class="dz-file" id="dzFile" style="display:none"></div>
+                    <div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.35rem">.zip · .apk · .bin · .jar · .tar.gz (max 50MB)</div>
+                </div>
+                <input type="file" id="fileInputHidden" onchange="handleFileSelect(event)" accept=".zip,.apk,.bin,.jar,.tar.gz,.gz">
+
+                <div style="display:flex;gap:1rem;">
+                    <div class="form-group" style="flex:1">
+                        <label>Folder / Project Name</label>
+                        <input type="text" id="folderInput" placeholder="e.g. Core System, Utilities" list="existingFolders">
+                        <datalist id="existingFolders"></datalist>
+                    </div>
+                    <div class="form-group" style="flex:1">
+                        <label>Package Version Tag</label>
+                        <input type="text" id="versionInput" placeholder="e.g. v2.1.0">
+                    </div>
+                </div>
+                <button class="btn btn-primary" id="uploadBtn" onclick="handleUpload()" disabled>
+                    Upload & Sign with Dilithium3 ✍️
+                </button>
+            </div>
+
+            <!-- Upload info -->
+            <div style="display:flex;flex-direction:column;gap:1rem;">
+                <div class="card">
+                    <div class="card-hd"><h3>🔏 Signing Pipeline</h3><span class="tag tag-purple">Verification Service</span></div>
+                    <div style="display:flex;flex-direction:column;gap:0.6rem;font-size:0.8rem;">
+                        <div style="display:flex;gap:0.6rem;align-items:flex-start;padding:0.5rem;border-radius:7px;background:rgba(255,255,255,0.02);border:1px solid var(--border)">
+                            <span style="font-size:1rem;flex-shrink:0">1️⃣</span>
+                            <div><strong style="color:var(--text-dim)">SHA-256 Hash</strong><div style="color:var(--text-muted);font-size:0.75rem;margin-top:0.15rem">Content Service computes SHA-256 of raw file bytes and sends Base64-encoded hash to Verification Service.</div></div>
+                        </div>
+                        <div style="display:flex;gap:0.6rem;align-items:flex-start;padding:0.5rem;border-radius:7px;background:rgba(255,255,255,0.02);border:1px solid var(--border)">
+                            <span style="font-size:1rem;flex-shrink:0">2️⃣</span>
+                            <div><strong style="color:var(--text-dim)">Dilithium3 Sign</strong><div style="color:var(--text-muted);font-size:0.75rem;margin-top:0.15rem">Verification Service signs the hash using its Dilithium3 private key (Bouncy Castle BCPQC) and returns signature + public key.</div></div>
+                        </div>
+                        <div style="display:flex;gap:0.6rem;align-items:flex-start;padding:0.5rem;border-radius:7px;background:rgba(255,255,255,0.02);border:1px solid var(--border)">
+                            <span style="font-size:1rem;flex-shrink:0">3️⃣</span>
+                            <div><strong style="color:var(--text-dim)">Persist Metadata</strong><div style="color:var(--text-muted);font-size:0.75rem;margin-top:0.15rem">Content Service stores file ID, hash, signature, public key, and upload timestamp in the H2 database.</div></div>
+                        </div>
+                        <div style="display:flex;gap:0.6rem;align-items:flex-start;padding:0.5rem;border-radius:7px;background:rgba(255,255,255,0.02);border:1px solid var(--border)">
+                            <span style="font-size:1rem;flex-shrink:0">4️⃣</span>
+                            <div><strong style="color:var(--text-dim)">Audit Log</strong><div style="color:var(--text-muted);font-size:0.75rem;margin-top:0.15rem">Both Content Service and Verification Service emit structured audit events to the Logging Service.</div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-hd"><h3>📋 Session Info</h3></div>
+                    <div class="info-row"><span class="lbl">Logged In As</span><span class="val" id="sessionUser">—</span></div>
+                    <div class="info-row"><span class="lbl">Role</span><span class="val" id="sessionRole">—</span></div>
+                    <div class="info-row"><span class="lbl">Token Prefix</span><span class="val" id="sessionToken">—</span></div>
+                    <div class="info-row"><span class="lbl">Auth Service</span><span class="val">:8081 / JWT HS512</span></div>
+                    <div class="info-row"><span class="lbl">Token Validity</span><span class="val">24 hours</span></div>
+                </div>
+            </div>
+            
+            <!-- My Packages List -->
+            <div class="card" style="grid-column: span 2;">
+                <div class="card-hd">
+                    <h3>📦 My Uploaded Packages</h3>
+                    <button class="btn btn-outline btn-sm" onclick="fetchVersions()" style="margin-left:auto">↻ Refresh</button>
+                </div>
+                <div id="adminPkgList">
+                    <div class="empty-state">
+                        <span class="es-icon">📭</span>
+                        No packages uploaded yet.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== CLIENT VIEW ===== -->
+<div class="view" id="viewClient">
+    <div class="page">
+        <div class="page-header">
+            <h2>📦 Client Terminal — Secure Download</h2>
+            <p>Kyber-768 key exchange → AES-256-GCM decryption → Dilithium3 signature verification pipeline</p>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1.4fr;gap:1rem;">
+            <!-- Catalog -->
+            <div>
+                <div class="card">
+                    <div class="card-hd">
+                        <h3>📋 Software Catalog</h3>
+                        <span class="tag tag-green" id="pkgCountTag">0 packages</span>
+                        <button class="btn btn-outline btn-sm" onclick="fetchVersions()" style="margin-left:auto">↻ Refresh</button>
+                    </div>
+                    <div id="pkgList">
+                        <div class="empty-state">
+                            <span class="es-icon">📭</span>
+                            Loading packages from Content Service…
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trace Terminal -->
+            <div>
+                <div class="card" style="padding:0;overflow:hidden;">
+                    <div style="padding:1rem 1.25rem 0.75rem;border-bottom:1px solid var(--border);">
+                        <div class="card-hd" style="border:none;margin:0;padding:0">
+                            <h3>🛡 PQC Decryption & Verification Engine</h3>
+                            <span class="tag tag-teal">Live Trace</span>
+                        </div>
+                        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.3rem;">Real-time execution trace of Kyber-768 KEM + AES-256-GCM + Dilithium3 DSA pipeline</p>
+                    </div>
+                    <div class="trace-terminal" style="border:none;border-radius:0;">
+                        <div class="trace-terminal-hd">
+                            <div class="term-dot red"></div>
+                            <div class="term-dot yellow"></div>
+                            <div class="term-dot green"></div>
+                            <span class="term-label">pqc-client-engine · demo-client:8086</span>
+                        </div>
+                        <div class="trace-body" id="traceBody">
+                            <div style="color:var(--text-muted);font-size:0.78rem;padding:1rem;text-align:center;">
+                                Select a package from the catalog and click <strong style="color:var(--teal)">Secure Download</strong> to initiate the PQC pipeline trace.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== GATEWAY VIEW ===== -->
+<div class="view" id="viewGateway">
+    <div class="page">
+        <div class="page-header">
+            <h2>🌐 API Gateway Console — gateway-service</h2>
+            <p>Interactive reverse proxy inspect, JWT authentication gateway, and dynamic load-balancer at <code style="font-family:var(--mono);font-size:0.8rem;color:var(--teal)">http://localhost:8080</code></p>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1.2fr;gap:1.5rem;margin-bottom:1.5rem;">
+            <!-- Config & Request Sender -->
+            <div class="card" style="display:flex;flex-direction:column;gap:1.25rem;">
+                <div class="card-hd">
+                    <h3>🛠 Ingress Routing Console</h3>
+                    <span class="tag tag-cyan">Gateway Egress: :8080</span>
+                </div>
+                
+                <div class="form-group">
+                    <label>1. Select API Ingress Route</label>
+                    <select id="gwRouteSelect" onchange="updateGwRequestBodyInfo()">
+                        <option value="/api/content/versions" data-method="GET">GET /api/content/versions (Fetch package list)</option>
+                        <option value="/api/content/upload" data-method="POST">POST /api/content/upload (Upload package - Admin only)</option>
+                        <option value="/api/logs" data-method="GET">GET /api/logs (Fetch central audit logs)</option>
+                        <option value="/api/download/dummy-id-123" data-method="POST">POST /api/download/dummy-id-123 (Request secure key/package)</option>
+                        <option value="/api/auth/invalid-endpoint" data-method="GET">GET /api/auth/invalid-endpoint (Trigger 404 Route)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>2. Choose Authorization Scenario</label>
+                    <select id="gwScenarioSelect">
+                        <option value="VALID">🟢 Scenario A: Valid JWT Token (Active Session)</option>
+                        <option value="LACKS_ADMIN">🟡 Scenario B: Valid JWT but lacks ADMIN role (USER role)</option>
+                        <option value="INVALID">🔴 Scenario C: Tampered / Invalid JWT Signature</option>
+                        <option value="MISSING">⚫ Scenario D: Missing Authorization Header</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="gwBodyGroup" style="display:none;">
+                    <label>Request Body (JSON)</label>
+                    <textarea id="gwRequestBody" rows="3" style="width:100%;background:rgba(0,0,0,0.25);border:1px solid var(--border);border-radius:6px;color:var(--text-dim);font-family:var(--mono);font-size:0.75rem;padding:0.5rem;resize:vertical;">{"version":"v2.0","fileName":"simulated_update.apk"}</textarea>
+                </div>
+
+                <button class="btn btn-teal" onclick="dispatchGatewayTest()">
+                    🚀 Dispatch Request via API Gateway (:8080)
+                </button>
+            </div>
+
+            <!-- Route Table -->
+            <div class="card" style="padding-bottom: 0.5rem;">
+                <div class="card-hd">
+                    <h3>📋 Gateway Routing Table</h3>
+                    <span class="tag tag-purple">Reverse Proxy Map</span>
+                </div>
+                <div style="overflow-x:auto;">
+                    <table class="log-table" style="font-size:0.75rem;">
+                        <thead>
+                            <tr>
+                                <th>Route Match</th>
+                                <th>Target Service Port</th>
+                                <th>Auth Required</th>
+                                <th>Role Required</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="font-family:var(--mono);color:var(--teal)">/api/auth/**</td>
+                                <td style="font-family:var(--mono)">auth-service (:8081)</td>
+                                <td><span class="badge" style="background:rgba(255,255,255,0.06);color:var(--text-muted)">No</span></td>
+                                <td><span style="color:var(--text-muted)">Any</span></td>
+                            </tr>
+                            <tr>
+                                <td style="font-family:var(--mono);color:var(--teal)">/api/content/upload</td>
+                                <td style="font-family:var(--mono)">content-service (:8082)</td>
+                                <td><span class="badge badge-signed">Yes</span></td>
+                                <td><span class="badge" style="background:var(--purple);color:white">ADMIN</span></td>
+                            </tr>
+                            <tr>
+                                <td style="font-family:var(--mono);color:var(--teal)">/api/content/**</td>
+                                <td style="font-family:var(--mono)">content-service (:8082)</td>
+                                <td><span class="badge badge-signed">Yes</span></td>
+                                <td><span style="color:var(--text-muted)">Any</span></td>
+                            </tr>
+                            <tr>
+                                <td style="font-family:var(--mono);color:var(--teal)">/api/download/**</td>
+                                <td style="font-family:var(--mono)">download-service (:8083)</td>
+                                <td><span class="badge badge-signed">Yes</span></td>
+                                <td><span style="color:var(--text-muted)">Any</span></td>
+                            </tr>
+                            <tr>
+                                <td style="font-family:var(--mono);color:var(--teal)">/api/logs</td>
+                                <td style="font-family:var(--mono)">logging-service (:8085)</td>
+                                <td><span class="badge badge-signed">Yes</span></td>
+                                <td><span style="color:var(--text-muted)">Any</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.75rem;line-height:1.25;">
+                    💡 <strong>Centralized Authentication:</strong> The Gateway checks the incoming JWT against the shared cryptographic secret first. Only valid and authorized requests are forwarded.
+                </div>
+            </div>
+        </div>
+
+        <!-- DDoS Simulation -->
+        <div class="card" style="margin-bottom:1.5rem; border-left: 4px solid var(--purple);">
+            <div class="card-hd">
+                <h3>🛡️ Rate Limiting & DDoS Protection Simulation</h3>
+                <span class="tag tag-purple">Gateway Security</span>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-dim); margin-bottom: 1rem;">
+                The API Gateway implements an in-memory Sliding Window Rate Limiter. To prevent brute-force and DDoS attacks, it enforces a strict limit of <strong>5 requests per second</strong> per client IP. Click the button below to simulate an aggressive flood of 20 rapid requests to the Gateway.
+            </p>
+            <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem;">
+                <button class="btn" style="background-color: #ff4757; color: white;" onclick="simulateDDoS()">
+                    ⚡ Simulate DDoS Attack (20 reqs)
+                </button>
+                <div id="ddosStatus" style="font-family: var(--mono); font-size: 0.85rem; font-weight: bold;"></div>
+            </div>
+            <div style="display:flex; gap:0.25rem; flex-wrap:wrap;" id="ddosVisualizer">
+                <!-- dots will appear here -->
+            </div>
+        </div>
+
+        <!-- Live Diagram & Request Inspector -->
+        <div class="card" style="padding: 1.25rem;">
+            <div class="card-hd">
+                <h3>🔍 Live Gateway Ingress Inspector</h3>
+                <span class="tag tag-green" id="gwStatusState">Awaiting Request</span>
+            </div>
+            
+            <div style="display:grid;grid-template-columns: 1.2fr 1.8fr; gap:1.5rem; margin-top:0.5rem;">
+                
+                <!-- Graphic routing diagram -->
+                <div style="background:rgba(0,0,0,0.18); border-radius:10px; padding:1.25rem; border:1px solid var(--border); display:flex; flex-direction:column; justify-content:center; align-items:center; gap:1.25rem; min-height: 280px;">
+                    
+                    <div style="display:flex; flex-direction:column; align-items:center; text-align:center;">
+                        <div id="nodeClient" style="width:48px;height:48px;border-radius:50%;background:rgba(6,182,212,0.15);border:2px solid var(--teal);display:flex;align-items:center;justify-content:center;font-size:1.3rem;transition:all 0.3s;">💻</div>
+                        <span style="font-size:0.7rem;color:var(--text-dim);font-weight:600;margin-top:0.25rem;">Demo Client UI</span>
+                    </div>
+                    
+                    <div style="height:35px; width:2px; background:var(--border); position:relative; transition:all 0.3s;" id="lineClientToGateway">
+                        <div id="pulseClientToGateway" style="width:8px;height:8px;border-radius:50%;background:var(--teal);position:absolute;left:-3px;top:0;display:none;"></div>
+                    </div>
+                    
+                    <div style="display:flex; flex-direction:column; align-items:center; text-align:center;">
+                        <div id="nodeGateway" style="width:56px;height:56px;border-radius:50%;background:rgba(99,102,241,0.15);border:2px solid var(--primary);display:flex;align-items:center;justify-content:center;font-size:1.4rem;transition:all 0.3s;position:relative;">
+                            🌐
+                            <div id="gwVerifyStatusTag" style="position:absolute;bottom:-15px;font-size:0.6rem;padding:0.1rem 0.4rem;border-radius:10px;background:var(--border);color:var(--text-muted);white-space:nowrap;transition:all 0.3s;">IDLE</div>
+                        </div>
+                        <span style="font-size:0.72rem;color:var(--text-dim);font-weight:600;margin-top:0.75rem;">API Gateway (:8080)</span>
+                    </div>
+                    
+                    <div style="height:35px; width:2px; background:var(--border); position:relative; transition:all 0.3s;" id="lineGatewayToService">
+                        <div id="pulseGatewayToService" style="width:8px;height:8px;border-radius:50%;background:var(--primary);position:absolute;left:-3px;top:0;display:none;"></div>
+                    </div>
+                    
+                    <div style="display:flex; flex-direction:column; align-items:center; text-align:center;">
+                        <div id="nodeService" style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.05);border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:1.3rem;transition:all 0.3s;">⚙️</div>
+                        <span id="targetServiceLabel" style="font-size:0.7rem;color:var(--text-muted);font-weight:600;margin-top:0.25rem;">Target Service</span>
+                    </div>
+                    
+                </div>
+
+                <!-- HTTP Headers inspector -->
+                <div style="display:flex; flex-direction:column; gap:0.75rem;">
+                    
+                    <!-- Gateway Action -->
+                    <div id="gwActionAlert" class="alert-box" style="display:block;margin:0;padding:0.75rem;background:rgba(255,255,255,0.03);border:1px solid var(--border);color:var(--text-muted);font-size:0.8rem;">
+                         Awaiting gateway test execution... Choose options above and click <strong>Dispatch Request</strong>.
+                    </div>
+
+                    <!-- Request Headers sent to Gateway -->
+                    <div>
+                        <div style="font-size:0.75rem;font-weight:600;color:var(--text-dim);margin-bottom:0.25rem;">📡 Sent HTTP Headers (to Gateway)</div>
+                        <pre style="background:rgba(0,0,0,0.25);border:1px solid var(--border);border-radius:6px;padding:0.6rem;font-family:var(--mono);font-size:0.72rem;color:#818cf8;margin:0;max-height:120px;overflow-y:auto;" id="gwReqHeadersBlock">
+// No request sent yet
+                        </pre>
+                    </div>
+
+                    <!-- Response Headers returned -->
+                    <div>
+                        <div style="font-size:0.75rem;font-weight:600;color:var(--text-dim);margin-bottom:0.25rem;">📥 Received HTTP Response (from Gateway)</div>
+                        <pre style="background:rgba(0,0,0,0.25);border:1px solid var(--border);border-radius:6px;padding:0.6rem;font-family:var(--mono);font-size:0.72rem;color:#34d399;margin:0;max-height:160px;overflow-y:auto;" id="gwRespBlock">
+// No response received yet
+                        </pre>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ===== SECURITY LAB VIEW ===== -->
+<div class="view" id="viewSecurity">
+    <div class="page">
+        <div class="page-header">
+            <h2>Cryptography + Network Security Lab</h2>
+            <p>Run real checks against an uploaded package: gateway authorization, Kyber protected transfer, AES-GCM decrypt, and Dilithium tamper detection.</p>
+        </div>
+        <div class="grid-2">
+            <div class="card">
+                <div class="card-hd">
+                    <h3>Run Tamper Detection</h3>
+                    <span class="tag tag-purple">Active Test</span>
+                </div>
+                <div class="form-group">
+                    <label>Package</label>
+                    <select id="securityFileSelect">
+                        <option value="">Login and load packages first</option>
+                    </select>
+                </div>
+                <button class="btn btn-teal" id="securityRunBtn" onclick="runSecurityLab()">Run Security Lab</button>
+                <div id="securityAlert" class="alert-box alert-info" style="display:block;margin-top:1rem;">
+                    Select a package to simulate a network attacker changing one byte after decryption. Dilithium should reject the tampered file.
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-hd">
+                    <h3>Security Proof</h3>
+                    <span class="tag tag-green" id="securityResultTag">Waiting</span>
+                </div>
+                <div class="trace-terminal" style="max-height:520px;">
+                    <div class="trace-terminal-hd">
+                        <div class="term-dot red"></div>
+                        <div class="term-dot yellow"></div>
+                        <div class="term-dot green"></div>
+                        <span class="term-label">crypto-network-lab</span>
+                    </div>
+                    <div class="trace-body" id="securityTraceBody">
+                        <div style="color:var(--text-muted);font-size:0.78rem;padding:1rem;text-align:center;">
+                            No security lab run yet.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== LOGS VIEW ===== -->
+<div class="view" id="viewLogs">
+    <div class="page">
+        <div class="page-header">
+            <h2>📊 System Audit Trail</h2>
+            <p>Cross-service structured event log from <code style="font-family:var(--mono);font-size:0.8rem;color:var(--teal)">GET /api/logs</code> → Logging Service (:8085) · Auto-refreshes every 5s</p>
+        </div>
+        <div class="card">
+            <div class="card-hd">
+                <h3>Event Log</h3>
+                <span class="tag tag-green" id="logCountTag">0 events</span>
+                <div style="margin-left:auto;display:flex;align-items:center;gap:0.5rem;">
+                    <span id="logRefreshIndicator" style="font-size:0.72rem;color:var(--text-muted);">Auto-refresh active</span>
+                    <button class="btn btn-outline btn-sm" onclick="fetchAuditLogs()">↻ Refresh</button>
+                </div>
+            </div>
+            <!-- Filter chips -->
+            <div class="chip-row" style="margin-bottom:0.85rem;">
+                <button class="btn btn-outline btn-sm" style="border-color:rgba(16,185,129,0.3);color:#34d399" onclick="filterLogs('all')">All</button>
+                <button class="btn btn-outline btn-sm" style="border-color:rgba(16,185,129,0.3);color:#34d399" onclick="filterLogs('content-service')">📁 Content</button>
+                <button class="btn btn-outline btn-sm" style="border-color:rgba(6,182,212,0.3);color:#22d3ee" onclick="filterLogs('download-service')">📥 Download</button>
+                <button class="btn btn-outline btn-sm" style="border-color:rgba(99,102,241,0.3);color:#a5b4fc" onclick="filterLogs('auth-service')">🔐 Auth</button>
+                <button class="btn btn-outline btn-sm" style="border-color:rgba(168,85,247,0.3);color:#c084fc" onclick="filterLogs('verification-service')">🔏 Verify</button>
+                <button class="btn btn-outline btn-sm" style="border-color:rgba(6,182,212,0.3);color:#22d3ee" onclick="filterLogs('gateway-service')">🌐 Gateway</button>
+            </div>
+            <div style="overflow-x:auto;">
+                <table class="log-table">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Service</th>
+                            <th>Event Type</th>
+                            <th>Message</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logsBody">
+                        <tr><td colspan="5" class="empty-state">Authenticate to view logs</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    if (window.location.protocol === 'file:') {
+        window.location.replace('http://localhost:8087');
+    }
+
+    // ====== STATE ======
+    let token = null, username = null, userRole = null;
+    let authMode = 'login';
+    let allLogs = [];
+    let allVersions = [];
+    let selectedFile = null;
+    let logInterval = null;
+
+    // ====== INIT ======
+    window.onload = () => {
+        const t = sessionStorage.getItem('pqc_token');
+        const u = sessionStorage.getItem('pqc_user');
+        const r = sessionStorage.getItem('pqc_role');
+        if (t && u && r) {
+            token = t; username = u; userRole = r;
+            postLogin();
+        }
+        checkServiceHealth();
+    };
+
+    // ====== AUTH TABS ======
+    function setAuthMode(mode) {
+        authMode = mode;
+        document.getElementById('tabLogin').classList.toggle('active', mode === 'login');
+        document.getElementById('tabRegister').classList.toggle('active', mode === 'register');
+        document.getElementById('roleGroup').style.display = mode === 'register' ? 'block' : 'none';
+        document.getElementById('authSubmit').textContent = mode === 'login' ? 'Sign In' : 'Create Account';
+        document.getElementById('authHeading').textContent = mode === 'login' ? '🔐 Sign In' : '📝 Create Account';
+        document.getElementById('toggleLink').innerHTML = mode === 'login'
+            ? 'No account? <span onclick="setAuthMode(\'register\')">Register here</span>'
+            : 'Have an account? <span onclick="setAuthMode(\'login\')">Login here</span>';
+        document.getElementById('authAlert').style.display = 'none';
+    }
+
+    async function handleAuth(e) {
+        e.preventDefault();
+        const alert = document.getElementById('authAlert');
+        alert.style.display = 'none';
+        const payload = {
+            username: document.getElementById('username').value.trim(),
+            password: document.getElementById('password').value
+        };
+        if (authMode === 'register') payload.role = document.getElementById('role').value;
+        const endpoint = authMode === 'register' ? '/client-api/register' : '/client-api/login';
+        try {
+            const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (!res.ok) { const t = await res.text(); throw new Error(t || 'Auth failed'); }
+            const data = await res.json();
+            token = 'Bearer ' + data.token;
+            username = data.username;
+            userRole = data.role;
+            sessionStorage.setItem('pqc_token', token);
+            sessionStorage.setItem('pqc_user', username);
+            sessionStorage.setItem('pqc_role', userRole);
+            postLogin();
+        } catch (err) {
+            alert.textContent = err.message;
+            alert.style.display = 'block';
+        }
+    }
+
+    function postLogin() {
+        document.getElementById('pulseDot').classList.add('online');
+        document.getElementById('userLabel').textContent = `${username} · ${userRole}`;
+        document.getElementById('logoutBtn').style.display = 'block';
+        document.getElementById('mainNav').style.display = 'flex';
+
+        // Show/hide admin tab
+        const adminTab = document.getElementById('navAdmin');
+        adminTab.style.display = userRole === 'ADMIN' ? 'block' : 'none';
+
+        // Show/hide client tab
+        const clientTab = document.getElementById('navClient');
+        clientTab.style.display = userRole === 'USER' ? 'block' : 'none';
+
+        // Session info
+        document.getElementById('sessionUser').textContent = username;
+        document.getElementById('sessionRole').textContent = userRole;
+        document.getElementById('sessionToken').textContent = token.substring(7, 34) + '…';
+
+        // Disable upload if not admin
+        if (userRole !== 'ADMIN') {
+            document.getElementById('uploadBtn').disabled = true;
+            document.getElementById('dropZone').style.opacity = '0.4';
+            document.getElementById('dropZone').style.pointerEvents = 'none';
+            document.getElementById('versionInput').disabled = true;
+        }
+
+        switchView('overview');
+        fetchVersions();
+        fetchAuditLogs();
+        logInterval = setInterval(fetchAuditLogs, 5000);
+    }
+
+    function logout() {
+        sessionStorage.clear();
+        if (logInterval) clearInterval(logInterval);
+        window.location.reload();
+    }
+
+    // ====== VIEW SWITCHING ======
+    function switchView(view) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+        document.getElementById('view' + view.charAt(0).toUpperCase() + view.slice(1)).classList.add('active');
+        const navId = 'nav' + view.charAt(0).toUpperCase() + view.slice(1);
+        const navEl = document.getElementById(navId);
+        if (navEl) navEl.classList.add('active');
+        if (view === 'overview') checkServiceHealth();
+        if (view === 'client') fetchVersions();
+        if (view === 'logs') fetchAuditLogs();
+        if (view === 'gateway') updateGwRequestBodyInfo();
+    }
+
+    // ====== API GATEWAY TESTER ======
+    function updateGwRequestBodyInfo() {
+        const select = document.getElementById('gwRouteSelect');
+        const opt = select.options[select.selectedIndex];
+        const method = opt.getAttribute('data-method');
+        const bodyGroup = document.getElementById('gwBodyGroup');
+        
+        if (method === 'POST') {
+            bodyGroup.style.display = 'block';
+            if (opt.value.includes('/upload')) {
+                document.getElementById('gwRequestBody').value = '{\n  "version": "v2.0.0",\n  "fileName": "ota_patch_v2.zip"\n}';
+            } else if (opt.value.includes('/download')) {
+                document.getElementById('gwRequestBody').value = '{\n  "kyberPublicKey": "MCowBQYDK2VwAyEA...[ephemeral kyber key data]"\n}';
+            }
+        } else {
+            bodyGroup.style.display = 'none';
+        }
+    }
+
+    async function dispatchGatewayTest() {
+        const select = document.getElementById('gwRouteSelect');
+        const opt = select.options[select.selectedIndex];
+        const path = opt.value;
+        const method = opt.getAttribute('data-method');
+        const scenario = document.getElementById('gwScenarioSelect').value;
+        const body = method === 'POST' ? document.getElementById('gwRequestBody').value.trim() : '';
+
+        // Reset visual state
+        const nodeClient = document.getElementById('nodeClient');
+        const nodeGateway = document.getElementById('nodeGateway');
+        const nodeService = document.getElementById('nodeService');
+        const line1 = document.getElementById('lineClientToGateway');
+        const line2 = document.getElementById('lineGatewayToService');
+        const pulse1 = document.getElementById('pulseClientToGateway');
+        const pulse2 = document.getElementById('pulseGatewayToService');
+        const tag = document.getElementById('gwVerifyStatusTag');
+        const serviceLabel = document.getElementById('targetServiceLabel');
+        const statusState = document.getElementById('gwStatusState');
+
+        nodeClient.className = 'node-active';
+        nodeGateway.className = '';
+        nodeGateway.style.background = '';
+        nodeGateway.style.borderColor = '';
+        nodeGateway.style.boxShadow = '';
+        
+        nodeService.className = '';
+        nodeService.style.background = '';
+        nodeService.style.borderColor = '';
+        nodeService.style.boxShadow = '';
+        
+        line1.className = '';
+        line2.className = '';
+        
+        pulse1.style.display = 'block';
+        pulse1.classList.add('pulse-active');
+        
+        pulse2.style.display = 'none';
+        pulse2.classList.remove('pulse-active');
+
+        tag.className = '';
+        tag.textContent = 'ROUTING...';
+        tag.style.background = 'var(--primary-dim)';
+        tag.style.color = 'var(--primary)';
+
+        statusState.textContent = 'Processing...';
+        statusState.className = 'tag tag-amber';
+
+        // Update target service label based on route
+        let targetService = 'Unknown Service';
+        let serviceIcon = '⚙️';
+        if (path.includes('/auth/')) { targetService = 'auth-service (:8081)'; serviceIcon = '🔐'; }
+        else if (path.includes('/content/')) { targetService = 'content-service (:8082)'; serviceIcon = '📁'; }
+        else if (path.includes('/download/')) { targetService = 'download-service (:8083)'; serviceIcon = '📥'; }
+        else if (path.includes('/logs')) { targetService = 'logging-service (:8085)'; serviceIcon = '📊'; }
+        serviceLabel.textContent = targetService;
+        nodeService.textContent = serviceIcon;
+
+        const reqUrl = `/client-api/test-gateway?path=${encodeURIComponent(path)}&method=${encodeURIComponent(method)}&tokenScenario=${encodeURIComponent(scenario)}`;
+
+        try {
+            const res = await fetch(reqUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': token || ''
+                },
+                body: body ? body : null
+            });
+
+            if (!res.ok) {
+                throw new Error(await res.text() || 'Proxy call failed');
+            }
+
+            const data = await res.json();
+            
+            // Wait a tiny bit to make the animation visible and dramatic
+            await new Promise(r => setTimeout(r, 600));
+
+            // Stop first pulse
+            pulse1.style.display = 'none';
+            pulse1.classList.remove('pulse-active');
+
+            // Render sent headers block
+            let headersText = `${method} ${data.requestUrl} HTTP/1.1\n`;
+            for (const [k, v] of Object.entries(data.sentHeaders)) {
+                headersText += `${k}: ${v}\n`;
+            }
+            if (body) {
+                headersText += `\n${body}`;
+            }
+            document.getElementById('gwReqHeadersBlock').textContent = headersText;
+
+            // Render response block
+            let respText = `HTTP/1.1 ${data.responseStatus} ${data.responseStatusText}\n`;
+            for (const [k, v] of Object.entries(data.responseHeaders || {})) {
+                respText += `${k}: ${v}\n`;
+            }
+            respText += `\n${data.responseBody || ''}`;
+            document.getElementById('gwRespBlock').textContent = respText;
+
+            // Render action details
+            document.getElementById('gwActionAlert').className = `alert-box ${data.responseStatus < 300 ? 'alert-success' : 'alert-error'}`;
+            document.getElementById('gwActionAlert').innerHTML = `
+                <strong>Scenario:</strong> ${data.scenarioDescription}<br>
+                <strong>Gateway Action:</strong> ${data.gatewayAction}<br>
+                <strong>Latency:</strong> ${data.durationMs} ms
+            `;
+
+            // Visual animation based on response status
+            if (data.responseStatus >= 200 && data.responseStatus < 300) {
+                // Success: authorized & forwarded
+                nodeGateway.classList.add('node-success');
+                tag.textContent = 'AUTHORIZED / 200';
+                tag.style.background = 'var(--green-dim)';
+                tag.style.color = '#34d399';
+
+                line1.classList.add('line-active-green');
+                line2.classList.add('line-active-green');
+
+                pulse2.style.display = 'block';
+                pulse2.classList.add('pulse-active');
+                
+                nodeService.classList.add('node-success');
+                statusState.textContent = 'Success / routed';
+                statusState.className = 'tag tag-green';
+            } else if (data.responseStatus === 401 || data.responseStatus === 403) {
+                // Blocked by gateway
+                nodeGateway.classList.add('node-error');
+                tag.textContent = `BLOCKED / ${data.responseStatus}`;
+                tag.style.background = 'var(--rose-dim)';
+                tag.style.color = '#fb7185';
+
+                line1.classList.add('line-active-red');
+                statusState.textContent = `Blocked (${data.responseStatus})`;
+                statusState.className = 'tag tag-rose';
+            } else {
+                // General error or 404
+                nodeGateway.classList.add('node-error');
+                tag.textContent = `STATUS / ${data.responseStatus}`;
+                tag.style.background = 'var(--amber-dim)';
+                tag.style.color = '#fbbf24';
+
+                statusState.textContent = `Error (${data.responseStatus})`;
+                statusState.className = 'tag tag-amber';
+            }
+
+        } catch (err) {
+            pulse1.style.display = 'none';
+            pulse1.classList.remove('pulse-active');
+            tag.textContent = 'GATEWAY ERROR';
+            tag.style.background = 'var(--rose-dim)';
+            tag.style.color = '#fb7185';
+            statusState.textContent = 'Error';
+            statusState.className = 'tag tag-rose';
+            document.getElementById('gwRespBlock').textContent = `Local Connection Error:\n${err.message}`;
+            document.getElementById('gwActionAlert').className = 'alert-box alert-error';
+            document.getElementById('gwActionAlert').innerHTML = `Failed to contact gateway test endpoint: ${err.message}`;
+        }
+    }
+
+    // ====== SERVICE HEALTH CHECK ======
+    async function checkServiceHealth() {
+        const services = [
+            { id: 'hc-auth',     url: '/client-api/versions', indirect: true },
+            { id: 'hc-gateway',  url: '/client-api/versions', indirect: true },
+            { id: 'hc-content',  url: '/client-api/versions', indirect: true },
+            { id: 'hc-download', url: '/client-api/logs',     indirect: true },
+            { id: 'hc-verify',   url: '/client-api/versions', indirect: true },
+            { id: 'hc-logging',  url: '/client-api/logs',     indirect: true },
+        ];
+        let upCount = 1; // demo-client itself is always up
+        for (const svc of services) {
+            const card = document.getElementById(svc.id);
+            const dot = card.querySelector('.svc-dot');
+            const statusTxt = card.querySelector('.svc-status');
+            try {
+                const res = await fetch(svc.url, { headers: token ? { Authorization: token } : {} });
+                dot.className = 'svc-dot up';
+                statusTxt.innerHTML = '<div class="svc-dot up"></div> Online';
+                upCount++;
+            } catch {
+                dot.className = 'svc-dot down';
+                statusTxt.innerHTML = '<div class="svc-dot down"></div> Offline';
+            }
+        }
+        document.getElementById('statActiveServices').textContent = upCount;
+    }
+
+    // ====== FETCH VERSIONS ======
+    async function fetchVersions() {
+        if (!token) return;
+        try {
+            const res = await fetch('/client-api/versions', { headers: { Authorization: token } });
+            if (!res.ok) return;
+            const versions = await res.json();
+            allVersions = versions;
+            renderSecurityPackageOptions();
+            
+            if (userRole === 'ADMIN') {
+                const myVersions = versions.filter(v => v.uploader === username);
+                renderPackages(myVersions, 'adminPkgList', true);
+            } else {
+                const pkgCountTag = document.getElementById('pkgCountTag');
+                if (pkgCountTag) pkgCountTag.textContent = versions.length + ' packages';
+                renderPackages(versions, 'pkgList', false);
+            }
+        } catch (err) { console.error(err); }
+    }
+
+    function renderPackages(versions, containerId, isAdminView) {
+        const list = document.getElementById(containerId);
+        if (!list) return;
+        if (!versions.length) {
+            list.innerHTML = '<div class="empty-state"><span class="es-icon">📭</span>No packages available.</div>';
+            return;
+        }
+
+        // Extract unique folders for the datalist (Admin upload form autocomplete)
+        if (isAdminView) {
+            const dl = document.getElementById('existingFolders');
+            if (dl) {
+                const uniqueFolders = [...new Set(versions.map(v => v.folderName).filter(f => f))];
+                dl.innerHTML = uniqueFolders.map(f => `<option value="${f}">`).join('');
+            }
+        }
+
+        // Group versions by folderName
+        const groupedByFolder = {};
+        versions.forEach(v => {
+            const folder = v.folderName || 'Uncategorized';
+            if (!groupedByFolder[folder]) groupedByFolder[folder] = [];
+            groupedByFolder[folder].push(v);
+        });
+
+        let html = '';
+        
+        for (const [folderName, folderVersions] of Object.entries(groupedByFolder)) {
+            const folderId = 'folder-' + Math.random().toString(36).substr(2, 9);
+            html += `
+            <div class="folder-group" style="margin-bottom: 1.5rem; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 8px;">
+                <div class="folder-header" style="padding: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border);" onclick="document.getElementById('${folderId}').style.display = document.getElementById('${folderId}').style.display === 'none' ? 'block' : 'none'">
+                    <div style="display:flex; align-items:center; gap: 0.5rem;">
+                        <span style="font-size:1.2rem;">📁</span>
+                        <h4 style="margin:0; font-size: 1.1rem; color: var(--primary);">${folderName}</h4>
+                    </div>
+                    <span class="badge" style="background:var(--bg); border:1px solid var(--border)">${folderVersions.length} items</span>
+                </div>
+                <div id="${folderId}" style="display: block; padding: 1rem;">
+            `;
+
+            html += folderVersions.map(v => {
+                const isRevoked = v.revoked === true;
+                const statusBadge = isRevoked 
+                    ? `<span class="badge" style="background:var(--rose-dim);color:#fb7185;border:1px solid #fb7185">REVOKED 🛑</span>` 
+                    : `<span class="badge badge-signed">Dilithium3 Signed</span>`;
+                
+                const revokeBtn = (isAdminView && !isRevoked) 
+                    ? `<button class="btn btn-sm" style="background:var(--rose-dim);color:#fb7185;border:1px solid #fb7185" onclick="revokePackage('${v.fileId}')">Revoke 🛑</button>` 
+                    : ``;
+
+                const downloadBtn = (!isAdminView) 
+                    ? `<button class="btn btn-teal btn-sm" style="flex:1" onclick="doSecureDownload('${v.fileId}')">⬇ Secure Download & Verify</button>` 
+                    : ``;
+
+                const rollbackMsg = (!isAdminView && isRevoked && v.rollbackSuggestion)
+                    ? `<div style="margin-top:0.5rem;font-size:0.75rem;color:var(--yellow);background:rgba(234, 179, 8, 0.1);padding:0.4rem;border-radius:4px;">
+                         ⚠️ This version is revoked. Please rollback to <strong>${v.rollbackSuggestion}</strong>
+                       </div>`
+                    : ``;
+
+                return `
+                <div class="pkg-card" style="margin-bottom:0.75rem; ${isRevoked ? 'opacity:0.7; border-color:var(--rose-dim);' : ''}">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:0.5rem;">
+                        <div class="pkg-name" title="${v.fileName}" style="${isRevoked ? 'text-decoration:line-through' : ''}">📦 ${v.fileName}</div>
+                        <span class="badge badge-ver">${v.version}</span>
+                    </div>
+                    <div class="pkg-meta">
+                        <div class="pkg-meta-row">🕐 <span>${new Date(v.uploadTime).toLocaleString()}</span></div>
+                        <div class="pkg-meta-row">🆔 <span class="mono" style="font-size:0.68rem">${v.fileId.substring(0,8)}…</span></div>
+                        <div class="pkg-meta-row">✍️ ${statusBadge}</div>
+                        ${v.uploader ? `<div class="pkg-meta-row">👤 <span>${v.uploader}</span></div>` : ''}
+                    </div>
+                    <div class="hash-text">SHA-256: ${v.sha256Hash.substring(0,40)}…</div>
+                    ${rollbackMsg}
+                    <div style="display:flex; gap:0.5rem; margin-top:1rem;">
+                        ${downloadBtn}
+                        ${revokeBtn}
+                    </div>
+                </div>
+            `}).join('');
+            
+            html += `</div></div>`; // Close folder wrapper
+        }
+        
+        list.innerHTML = html;
+    }
+
+    async function revokePackage(fileId) {
+        if (!confirm("Are you sure you want to completely revoke this package? All future downloads will be blocked!")) return;
+        try {
+            const res = await fetch(`/client-api/revoke/${fileId}`, {
+                method: 'POST',
+                headers: { Authorization: token }
+            });
+            if (res.ok) {
+                alert("Package Revoked Successfully!");
+                fetchVersions(); // refresh
+                fetchAuditLogs();
+            } else {
+                const text = await res.text();
+                alert("Failed to revoke: " + text);
+            }
+        } catch (err) {
+            alert("Error: " + err.message);
+        }
+    }
+
+    // ====== SECURE DOWNLOAD ======
+    async function doSecureDownload(fileId) {
+        switchView('client');
+        const body = document.getElementById('traceBody');
+        body.innerHTML = '';
+        addTrace('step1', 'running', '1. Generate Ephemeral Kyber-768 Key Pair',
+            'Initializing Bouncy Castle BCPQC provider...\nRunning KeyPairGenerator.getInstance("Kyber", "BCPQC")...');
+
+        try {
+            const res = await fetch(`/client-api/download/${fileId}`, {
+                method: 'POST', headers: { Authorization: token, 'Content-Type': 'application/json' }
+            });
+            if (!res.ok) { const t = await res.text(); throw new Error(t || 'Download failed'); }
+            const d = await res.json();
+
+            updateTrace('step1', 'success',
+                `<span class="success-val">✓ KeyPair generated successfully</span>\n` +
+                `<span class="key-val">Public Key (1184 bytes):</span> ${d.kyber_public_key.substring(0,80)}…\n` +
+                `<span class="key-val">Private Key:</span> [held in client memory only]\n` +
+                `<span class="timing">⏱ Keygen: ${d.kyber_keygen_time_ms} ms</span>`);
+
+            addTrace('step2', 'success', `2. Transmit Request via API Gateway → Download Service`,
+                `POST /api/download/${fileId.substring(0,8)}… → gateway-service:8080 → download-service:8083\n` +
+                `Payload: { kyberPublicKey: "${d.kyber_public_key.substring(0,40)}…" }\n` +
+                `<span class="timing">⏱ Round-trip: ${d.download_response_time_ms} ms</span>\n` +
+                `<span class="success-val">✓ Server performed Kyber encapsulation → returned ciphertext + AES-encrypted file</span>`);
+
+            addTrace('step3', 'success', '3. Kyber-768 Decapsulation → Recover AES-256 Key',
+                `Download Service encapsulated an AES-256 key using client's Kyber public key.\n` +
+                `Client decapsulates ciphertext using private key to recover shared secret.\n` +
+                `<span class="key-val">Recovered AES-256 Key (hex):</span>\n0x${d.recovered_aes_key_hex}\n` +
+                `<span class="timing">⏱ Decapsulation: ${d.decapsulation_time_ms} ms</span>`);
+
+            addTrace('step4', 'success', '4. AES-256-GCM Symmetric Decryption',
+                `Decrypting file payload using recovered 256-bit AES key + GCM authentication tag.\n` +
+                `<span class="success-val">✓ Decryption successful — file integrity confirmed by GCM tag</span>\n` +
+                `<span class="key-val">Plaintext size:</span> ${d.decrypted_file_size_bytes} bytes\n` +
+                `<span class="timing">⏱ Decryption: ${d.decryption_time_ms} ms</span>`);
+
+            const ok = d.signature_verified;
+            addTrace('step5', ok ? 'success' : 'failed',
+                '5. Dilithium3 Digital Signature Verification',
+                ok ?
+                `<span class="success-val">✓ SIGNATURE AUTHENTIC — File integrity and provenance confirmed</span>\n\n` +
+                `SHA-256 of decrypted file:\n0x${d.calculated_sha256_hex}\n\n` +
+                `Dilithium3 public key from Verification Service matches signature.\n` +
+                `<span class="timing">⏱ Verification: ${d.verification_time_ms} ms</span>` :
+                `<span style="color:var(--rose)">✗ SIGNATURE MISMATCH — Possible tampering detected!</span>\n` +
+                `SHA-256: 0x${d.calculated_sha256_hex}\nFile may be corrupted or modified in transit.`);
+
+            if (ok) {
+                const verifiedFileName = d.download_file_name || d.fileName || 'verified-package.bin';
+                await downloadVerifiedFile(
+                    d.browser_download_url,
+                    verifiedFileName,
+                    d.download_content_type || 'application/octet-stream'
+                );
+
+                addTrace('step6', 'success', '6. Save Verified Package to Client Storage',
+                    `<span class="success-val">Browser download started for the verified file</span>\n` +
+                    `Path: ${d.saved_path}\n` +
+                    `File: ${verifiedFileName}\n\n` +
+                    `End-to-end post-quantum secure delivery complete.\n` +
+                    `   Kyber-768 KEM + AES-256-GCM + Dilithium3 DSA`);
+            }
+
+            fetchAuditLogs();
+        } catch (err) {
+            const active = body.querySelector('.running');
+            if (active) {
+                active.className = 'trace-step failed';
+                active.querySelector('.trace-step-detail').innerHTML += `\n\n<span style="color:var(--rose)">ERROR: ${err.message}</span>`;
+            }
+        }
+    }
+
+    async function downloadVerifiedFile(downloadUrl, fileName, contentType) {
+        if (!downloadUrl) throw new Error('Verified download URL was not returned by the client service.');
+
+        const response = await fetch(downloadUrl, { headers: { Authorization: token } });
+        if (!response.ok) throw new Error('Verified file download failed.');
+
+        const blob = await response.blob();
+        const typedBlob = blob.type ? blob : new Blob([blob], { type: contentType || 'application/octet-stream' });
+        const url = URL.createObjectURL(typedBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName || 'verified-package.bin';
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 30000);
+    }
+
+    function renderSecurityPackageOptions() {
+        const select = document.getElementById('securityFileSelect');
+        if (!select) return;
+
+        const available = allVersions.filter(v => !v.revoked);
+        if (!available.length) {
+            select.innerHTML = '<option value="">No downloadable packages available</option>';
+            return;
+        }
+
+        select.innerHTML = available.map(v => {
+            const folder = v.folderName ? `${v.folderName} / ` : '';
+            const label = `${folder}${v.fileName} (${v.version})`;
+            return `<option value="${v.fileId}">${label}</option>`;
+        }).join('');
+    }
+
+    async function runSecurityLab() {
+        if (!token) return;
+        const select = document.getElementById('securityFileSelect');
+        const fileId = select ? select.value : '';
+        const trace = document.getElementById('securityTraceBody');
+        const tag = document.getElementById('securityResultTag');
+        const alert = document.getElementById('securityAlert');
+        if (!fileId) {
+            alert.className = 'alert-box alert-error';
+            alert.textContent = 'Select a package first.';
+            alert.style.display = 'block';
+            return;
+        }
+
+        tag.textContent = 'Running';
+        tag.className = 'tag tag-amber';
+        trace.innerHTML = '';
+        addSecurityTrace('running', '1. Gateway Network Path',
+            'Sending authorized request through demo-client -> API Gateway -> download-service.');
+
+        try {
+            const res = await fetch(`/client-api/security-lab/tamper/${fileId}`, {
+                method: 'POST',
+                headers: { Authorization: token }
+            });
+            if (!res.ok) {
+                const text = await res.text();
+                throw new Error(text || 'Security lab failed');
+            }
+            const data = await res.json();
+
+            trace.innerHTML = '';
+            addSecurityTrace('success', '1. Network Security Boundary',
+                `Route: ${data.networkRoute}\n` +
+                `Gateway status: ${data.gatewayStatus}\n` +
+                `Round trip: ${data.gatewayRoundTripMs} ms\n` +
+                `Invalid JWT probe: ${data.invalidJwtStatus} (${data.invalidJwtGatewayAction})`);
+
+            addSecurityTrace('success', '2. Post-Quantum Secure Transfer',
+                `Kyber algorithm: ${data.kyberAlgorithm}\n` +
+                `Kyber public key bytes: ${data.kyberPublicKeyBytes}\n` +
+                `AES-GCM decrypted package bytes: ${data.plainBytes}`);
+
+            addSecurityTrace(data.originalSignatureVerified ? 'success' : 'failed',
+                '3. Authentic File Verification',
+                `Package: ${data.fileName} (${data.version})\n` +
+                `Original SHA-256: ${data.originalSha256}\n` +
+                `Dilithium signature valid: ${data.originalSignatureVerified}`);
+
+            addSecurityTrace(data.attackDetected ? 'success' : 'failed',
+                '4. Tamper Attack Simulation',
+                `Changed one byte after decrypting the package.\n` +
+                `Tampered SHA-256: ${data.tamperedSha256}\n` +
+                `Tampered signature valid: ${data.tamperedSignatureVerified}\n` +
+                `Attack detected: ${data.attackDetected}`);
+
+            tag.textContent = data.attackDetected ? 'Attack Detected' : 'Check Failed';
+            tag.className = data.attackDetected ? 'tag tag-green' : 'tag tag-rose';
+            alert.className = data.attackDetected ? 'alert-box alert-success' : 'alert-box alert-error';
+            alert.textContent = data.attackDetected
+                ? 'Security proof passed: gateway blocked bad JWT and Dilithium rejected the tampered file.'
+                : 'Security proof did not pass. Check the trace output.';
+            alert.style.display = 'block';
+            fetchAuditLogs();
+        } catch (err) {
+            addSecurityTrace('failed', 'Security Lab Error', err.message);
+            tag.textContent = 'Failed';
+            tag.className = 'tag tag-rose';
+            alert.className = 'alert-box alert-error';
+            alert.textContent = err.message;
+            alert.style.display = 'block';
+        }
+    }
+
+    function addSecurityTrace(status, title, detail) {
+        const body = document.getElementById('securityTraceBody');
+        const el = document.createElement('div');
+        el.className = `trace-step ${status}`;
+        el.innerHTML = `<div class="trace-step-content">
+            <div class="trace-step-title">${title}</div>
+            <div class="trace-step-detail">${detail}</div>
+        </div>`;
+        body.appendChild(el);
+        body.parentElement.scrollTop = body.parentElement.scrollHeight;
+    }
+
+    function addTrace(id, status, title, detail) {
+        const body = document.getElementById('traceBody');
+        const el = document.createElement('div');
+        el.className = `trace-step ${status}`;
+        el.id = id;
+        el.innerHTML = `<div class="trace-step-content">
+            <div class="trace-step-title">${title}</div>
+            <div class="trace-step-detail">${detail}</div>
+        </div>`;
+        body.appendChild(el);
+        body.parentElement.scrollTop = body.parentElement.scrollHeight;
+    }
+
+    function updateTrace(id, status, detail) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.className = `trace-step ${status}`;
+        el.querySelector('.trace-step-detail').innerHTML = detail;
+    }
+
+    // ====== FILE UPLOAD ======
+    function handleFileSelect(e) {
+        selectedFile = e.target.files[0];
+        if (selectedFile) {
+            document.getElementById('dzText').style.display = 'none';
+            document.getElementById('dzFile').textContent = '📦 ' + selectedFile.name + ' (' + (selectedFile.size / 1024).toFixed(1) + ' KB)';
+            document.getElementById('dzFile').style.display = 'block';
+            document.getElementById('uploadBtn').disabled = userRole !== 'ADMIN';
+        }
+    }
+
+    function handleDragOver(e) { e.preventDefault(); document.getElementById('dropZone').classList.add('drag-over'); }
+    function handleDragLeave() { document.getElementById('dropZone').classList.remove('drag-over'); }
+    function handleDrop(e) {
+        e.preventDefault();
+        document.getElementById('dropZone').classList.remove('drag-over');
+        selectedFile = e.dataTransfer.files[0];
+        if (selectedFile) {
+            document.getElementById('dzText').style.display = 'none';
+            document.getElementById('dzFile').textContent = '📦 ' + selectedFile.name;
+            document.getElementById('dzFile').style.display = 'block';
+            document.getElementById('uploadBtn').disabled = false;
+        }
+    }
+
+    async function handleUpload() {
+        const alert = document.getElementById('uploadAlert');
+        alert.style.display = 'none';
+        const version = document.getElementById('versionInput').value.trim();
+        const folderName = document.getElementById('folderInput').value.trim();
+        if (!selectedFile || !version || !folderName) {
+            alert.className = 'alert-box alert-error';
+            alert.textContent = 'Please select a file, enter a folder name, and enter a version tag.';
+            alert.style.display = 'block';
+            return;
+        }
+        const btn = document.getElementById('uploadBtn');
+        btn.disabled = true;
+        btn.textContent = 'Uploading & Signing…';
+
+        const fd = new FormData();
+        fd.append('file', selectedFile);
+        fd.append('version', version);
+        fd.append('folderName', folderName);
+        try {
+            const res = await fetch('/client-api/upload', { method: 'POST', headers: { Authorization: token }, body: fd });
+            if (!res.ok) { const t = await res.text(); throw new Error(t || 'Upload failed'); }
+            const data = await res.json();
+            alert.className = 'alert-box alert-success';
+            alert.innerHTML = `✅ <strong>${selectedFile.name}</strong> uploaded and signed with Dilithium3!<br>
+                <span style="font-family:var(--mono);font-size:0.75rem;color:var(--green)">File ID: ${data.fileId}</span>`;
+            alert.style.display = 'block';
+            selectedFile = null;
+            document.getElementById('dzFile').style.display = 'none';
+            document.getElementById('dzText').style.display = 'block';
+            document.getElementById('versionInput').value = '';
+            document.getElementById('fileInputHidden').value = '';
+            fetchVersions();
+            fetchAuditLogs();
+        } catch (err) {
+            alert.className = 'alert-box alert-error';
+            alert.textContent = '❌ ' + err.message;
+            alert.style.display = 'block';
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Upload & Sign with Dilithium3 ✍️';
+        }
+    }
+
+    // ====== LOGS ======
+    let currentFilter = 'all';
+    function filterLogs(svc) { currentFilter = svc; renderLogs(); }
+
+    async function fetchAuditLogs() {
+        if (!token) return;
+        try {
+            const res = await fetch('/client-api/logs', { headers: { Authorization: token } });
+            if (!res.ok) return;
+            allLogs = await res.json();
+            document.getElementById('statLogs').textContent = allLogs.length;
+            document.getElementById('logCountTag').textContent = allLogs.length + ' events';
+            renderLogs();
+        } catch {}
+    }
+
+    function renderLogs() {
+        const filtered = currentFilter === 'all' ? allLogs : allLogs.filter(l => l.serviceName === currentFilter);
+        const tbody = document.getElementById('logsBody');
+        if (!filtered.length) {
+            tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No log entries yet</td></tr>';
+            return;
+        }
+        tbody.innerHTML = [...filtered].reverse().map(log => {
+            const sc = log.status === 'SUCCESS' ? 'chip-success' : log.status === 'FAILURE' ? 'chip-failure' : 'chip-info';
+            return `<tr>
+                <td style="white-space:nowrap;color:var(--text-muted);font-family:var(--mono);font-size:0.72rem">${new Date(log.timestamp).toLocaleString()}</td>
+                <td><span class="svc-tag">${log.serviceName}</span></td>
+                <td style="font-weight:600;font-size:0.8rem;color:var(--text-dim)">${log.eventType}</td>
+                <td style="color:var(--text-dim);font-size:0.8rem;max-width:360px;word-break:break-word">${log.message}</td>
+                <td><span class="status-chip ${sc}">${log.status}</span></td>
+            </tr>`;
+        }).join('');
+    }
+
+    async function simulateDDoS() {
+        const visualizer = document.getElementById('ddosVisualizer');
+        const statusEl = document.getElementById('ddosStatus');
+        visualizer.innerHTML = '';
+        statusEl.innerText = "Initiating attack...";
+        statusEl.style.color = '#ff4757';
+
+        let promises = [];
+        let successCount = 0;
+        let blockCount = 0;
+
+        for(let i=0; i<20; i++) {
+            // Short delay to not crash browser but fast enough to trigger rate limit
+            await new Promise(r => setTimeout(r, 20)); 
+
+            let dot = document.createElement('div');
+            dot.style.width = '20px';
+            dot.style.height = '20px';
+            dot.style.borderRadius = '50%';
+            dot.style.backgroundColor = 'var(--border)';
+            dot.style.display = 'flex';
+            dot.style.alignItems = 'center';
+            dot.style.justifyContent = 'center';
+            dot.style.fontSize = '10px';
+            dot.style.color = 'black';
+            dot.style.transition = 'background-color 0.3s ease';
+            dot.innerText = i+1;
+            visualizer.appendChild(dot);
+
+            let p = fetch(`/client-api/test-gateway?path=/api/content/versions&method=GET&tokenScenario=MISSING`, {
+                method: 'POST',
+                headers: { 'X-Simulate-IP': '10.0.0.99' }
+            }).then(async res => {
+                const data = await res.json();
+                if(data.responseStatus === 429) {
+                    dot.style.backgroundColor = '#ff4757'; // blocked
+                    dot.style.color = 'white';
+                    blockCount++;
+                } else {
+                    dot.style.backgroundColor = '#2ed573'; // passed
+                    dot.style.color = 'white';
+                    successCount++;
+                }
+                statusEl.innerText = `Attacking... Passed: ${successCount} | Blocked (429): ${blockCount}`;
+            }).catch(err => {
+                dot.style.backgroundColor = 'grey';
+            });
+            promises.push(p);
+        }
+
+        await Promise.all(promises);
+        statusEl.innerText = `Attack Complete. Passed: ${successCount} | Blocked (429): ${blockCount}`;
+        statusEl.style.color = 'var(--text)';
+    }
+</script>
+</body>
+</html>

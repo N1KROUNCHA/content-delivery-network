@@ -1,0 +1,67 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: content-uploads-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: content-service
+  namespace: default
+  labels:
+    app: content-service
+spec:
+  replicas: 1 # Set to 1 as it mounts a ReadWriteOnce volume
+  selector:
+    matchLabels:
+      app: content-service
+  template:
+    metadata:
+      labels:
+        app: content-service
+    spec:
+      containers:
+        - name: content-service
+          image: secure-dist/content-service:1.0.0
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8082
+          env:
+            - name: SERVICES_VERIFICATION_URL
+              value: "http://verification-service:8084"
+            - name: SERVICES_LOGGING_URL
+              value: "http://logging-service:8085"
+            - name: UPLOAD_DIR
+              value: "/app/uploads"
+          volumeMounts:
+            - name: uploads-volume
+              mountPath: /app/uploads
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+      volumes:
+        - name: uploads-volume
+          persistentVolumeClaim:
+            claimName: content-uploads-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: content-service
+  namespace: default
+spec:
+  ports:
+    - port: 8082
+      targetPort: 8082
+  selector:
+    app: content-service

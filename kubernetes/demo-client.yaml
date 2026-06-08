@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-client
+  namespace: default
+  labels:
+    app: demo-client
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo-client
+  template:
+    metadata:
+      labels:
+        app: demo-client
+    spec:
+      containers:
+        - name: demo-client
+          image: secure-dist/demo-client:1.0.0
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8086
+          env:
+            - name: SERVICES_GATEWAY_URL
+              value: "http://gateway-service:8080/api"
+            - name: CLIENT_DOWNLOADS_DIR
+              value: "/app/client_downloads"
+          volumeMounts:
+            - name: client-downloads-volume
+              mountPath: /app/client_downloads
+          resources:
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+      volumes:
+        - name: client-downloads-volume
+          emptyDir: {} # Temporary directory for downloads simulation in container
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-client
+  namespace: default
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 8087
+      targetPort: 8086
+  selector:
+    app: demo-client

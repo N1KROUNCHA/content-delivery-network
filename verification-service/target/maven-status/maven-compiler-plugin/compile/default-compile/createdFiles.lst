@@ -1,0 +1,7 @@
+com\cnslab\pqc\verification\controller\VerificationController.class
+com\cnslab\pqc\verification\dto\SignResponse.class
+com\cnslab\pqc\verification\dto\VerifyRequest.class
+com\cnslab\pqc\verification\VerificationApplication.class
+com\cnslab\pqc\verification\dto\VerifyResponse.class
+com\cnslab\pqc\verification\dto\SignRequest.class
+com\cnslab\pqc\verification\service\VerificationService.class
