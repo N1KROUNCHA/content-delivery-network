@@ -9,16 +9,23 @@ import com.cnslab.pqc.content.repository.FileMetadataRepository;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3ClientBuilder;
+import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.core.sync.ResponseTransformer;
 
-import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -32,23 +39,53 @@ public class ContentService {
     @Autowired
     private RestTemplate restTemplate;
 
-    @Value("${upload.dir:./uploads}")
-    private String uploadDir;
-
     @Value("${services.verification-url:http://localhost:8084}")
     private String verificationServiceUrl;
 
     @Value("${services.logging-url:http://localhost:8085}")
     private String loggingServiceUrl;
 
+    @Value("${aws.s3.endpoint:}")
+    private String s3Endpoint;
+
+    @Value("${aws.s3.access-key:}")
+    private String s3AccessKey;
+
+    @Value("${aws.s3.secret-key:}")
+    private String s3SecretKey;
+
+    @Value("${aws.s3.region:ap-south-2}")
+    private String s3Region;
+
+    @Value("${aws.s3.bucket-name:pqc-packages-srini}")
+    private String s3BucketName;
+
+    private S3Client s3Client;
+
     @PostConstruct
     public void init() {
-        File dir = new File(uploadDir);
-        if (!dir.exists()) {
-            dir.mkdirs();
+        S3ClientBuilder builder = S3Client.builder()
+                .credentialsProvider(StaticCredentialsProvider.create(
+                        AwsBasicCredentials.create(s3AccessKey, s3SecretKey)))
+                .region(Region.of(s3Region));
+
+        if (s3Endpoint != null && !s3Endpoint.trim().isEmpty()) {
+            builder.endpointOverride(URI.create(s3Endpoint))
+                   .forcePathStyle(true);
+        }
+
+        this.s3Client = builder.build();
+
+        try {
+            s3Client.headBucket(HeadBucketRequest.builder().bucket(s3BucketName).build());
+        } catch (NoSuchBucketException e) {
+            s3Client.createBucket(CreateBucketRequest.builder().bucket(s3BucketName).build());
+        } catch (Exception e) {
+            System.err.println("Bucket check failed: " + e.getMessage());
         }
     }
 
+    @CacheEvict(value = "packageVersions", allEntries = true)
     public UploadResponse uploadFile(MultipartFile file, String version, String uploader, String folderName) throws Exception {
         String originalFileName = file.getOriginalFilename();
         if (originalFileName == null) {
@@ -70,8 +107,18 @@ public class ContentService {
             fileExtension = originalFileName.substring(dotIndex);
         }
         String storageFileName = fileId + fileExtension;
-        Path targetPath = Paths.get(uploadDir).resolve(storageFileName);
-        Files.copy(file.getInputStream(), targetPath);
+
+        // Upload to S3
+        try {
+            s3Client.putObject(PutObjectRequest.builder()
+                    .bucket(s3BucketName)
+                    .key(storageFileName)
+                    .build(),
+                    RequestBody.fromInputStream(file.getInputStream(), file.getSize()));
+        } catch (Exception e) {
+            logEvent("FILE_UPLOAD_FAILURE", "Could not upload file to S3: " + e.getMessage(), "FAILURE");
+            throw new RuntimeException("S3 Storage failed: " + e.getMessage(), e);
+        }
 
         // Calculate SHA-256
         byte[] fileBytes = file.getBytes();
@@ -95,8 +142,15 @@ public class ContentService {
                 throw new RuntimeException("Verification Service returned error status");
             }
         } catch (Exception e) {
-            // Rollback stored file
-            Files.deleteIfExists(targetPath);
+            // Rollback stored S3 object
+            try {
+                s3Client.deleteObject(DeleteObjectRequest.builder()
+                        .bucket(s3BucketName)
+                        .key(storageFileName)
+                        .build());
+            } catch (Exception ex) {
+                System.err.println("S3 rollback failed: " + ex.getMessage());
+            }
             logEvent("FILE_UPLOAD_FAILURE", "Could not obtain Dilithium signature from verification-service: " + e.getMessage(), "FAILURE");
             throw new RuntimeException("Post-Quantum Digital Signing failed: " + e.getMessage(), e);
         }
@@ -106,7 +160,7 @@ public class ContentService {
                 fileId,
                 originalFileName,
                 version,
-                targetPath.toString(),
+                storageFileName,
                 sha256Hex,
                 signatureBase64,
                 publicKeyBase64,
@@ -128,6 +182,7 @@ public class ContentService {
         );
     }
 
+    @Cacheable(value = "packageVersions")
     public List<VersionInfo> getAllVersions() {
         List<FileMetadata> allMeta = metadataRepository.findAll();
         
@@ -184,7 +239,15 @@ public class ContentService {
     }
 
     public byte[] getFileBytes(FileMetadata metadata) throws IOException {
-        return Files.readAllBytes(Paths.get(metadata.getStoragePath()));
+        try {
+            return s3Client.getObject(GetObjectRequest.builder()
+                    .bucket(s3BucketName)
+                    .key(metadata.getStoragePath())
+                    .build(),
+                    ResponseTransformer.toBytes()).asByteArray();
+        } catch (Exception e) {
+            throw new IOException("Failed to download file from S3: " + e.getMessage(), e);
+        }
     }
 
     private VersionInfo mapToVersionInfo(FileMetadata m) {
@@ -203,6 +266,7 @@ public class ContentService {
         );
     }
 
+    @CacheEvict(value = "packageVersions", allEntries = true)
     public void revokePackage(String fileId) {
         FileMetadata metadata = metadataRepository.findById(fileId)
                 .orElseThrow(() -> new IllegalArgumentException("File ID not found"));

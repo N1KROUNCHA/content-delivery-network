@@ -1,0 +1,3 @@
+# Keep this file — it tells git the keys/ directory exists
+# but the actual key files inside are gitignored.
+# Generate keys by running the verification-service or using KeyGenTool.

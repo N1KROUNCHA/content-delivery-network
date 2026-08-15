@@ -2,9 +2,18 @@ package com.cnslab.pqc.gateway.controller;
 
 import com.cnslab.pqc.common.dto.LogEvent;
 import com.cnslab.pqc.common.jwt.JwtUtils;
+import io.github.bucket4j.Bandwidth;
+import io.github.bucket4j.Bucket;
+import io.github.bucket4j.BucketConfiguration;
+import io.github.bucket4j.distributed.proxy.ProxyManager;
+import io.github.bucket4j.redis.lettuce.cas.LettuceBasedProxyManager;
 import io.jsonwebtoken.Claims;
+import io.lettuce.core.RedisClient;
+import io.lettuce.core.api.StatefulRedisConnection;
+import io.lettuce.core.codec.ByteArrayCodec;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -14,17 +23,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Collections;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.function.Supplier;
 
 @RestController
 public class GatewayController {
 
-    @Autowired
-    private RestTemplate restTemplate;
+    private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${services.auth-url:http://localhost:8081}")
     private String authUrl;
@@ -38,19 +46,68 @@ public class GatewayController {
     @Value("${services.logging-url:http://localhost:8085}")
     private String loggingUrl;
 
-    // Rate Limiting Config: 5 requests per second per IP
-    private final ConcurrentHashMap<String, Queue<Long>> requestCounts = new ConcurrentHashMap<>();
-    private static final int MAX_REQUESTS_PER_SECOND = 5;
+    @Value("${spring.data.redis.host:localhost}")
+    private String redisHost;
+
+    @Value("${spring.data.redis.port:6379}")
+    private int redisPort;
+
+    @Value("${rate.limit.requests-per-second:10}")
+    private int requestsPerSecond;
+
+    @Value("${rate.limit.burst-capacity:20}")
+    private int burstCapacity;
+
+    private RedisClient redisClient;
+    private StatefulRedisConnection<byte[], byte[]> redisConnection;
+    private ProxyManager<byte[]> proxyManager;
+
+    // Fallback in-memory rate limiting if Redis is unavailable
+    private final java.util.concurrent.ConcurrentHashMap<String, java.util.Queue<Long>> fallbackCounts =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    @PostConstruct
+    public void init() {
+        try {
+            redisClient = RedisClient.create("redis://" + redisHost + ":" + redisPort);
+            redisConnection = redisClient.connect(ByteArrayCodec.INSTANCE);
+            proxyManager = LettuceBasedProxyManager.builderFor(redisConnection).build();
+            System.out.println("[GatewayService] Redis rate limiter connected: " + redisHost + ":" + redisPort);
+        } catch (Exception e) {
+            System.err.println("[GatewayService] Redis unavailable, falling back to in-memory rate limiting: " + e.getMessage());
+            proxyManager = null;
+        }
+    }
+
+    @PreDestroy
+    public void cleanup() {
+        if (redisConnection != null) redisConnection.close();
+        if (redisClient != null) redisClient.shutdown();
+    }
 
     private boolean isRateLimited(String clientIp) {
-        long now = System.currentTimeMillis();
-        Queue<Long> times = requestCounts.computeIfAbsent(clientIp, k -> new ConcurrentLinkedQueue<>());
-        times.add(now);
-        // Remove timestamps older than 1 second
-        while (!times.isEmpty() && times.peek() < now - 1000) {
-            times.poll();
+        if (proxyManager != null) {
+            // Distributed Redis-backed Bucket4j rate limiting
+            byte[] key = ("rl:" + clientIp).getBytes(StandardCharsets.UTF_8);
+            Supplier<BucketConfiguration> configSupplier = () -> BucketConfiguration.builder()
+                    .addLimit(Bandwidth.builder()
+                            .capacity(burstCapacity)
+                            .refillGreedy(requestsPerSecond, Duration.ofSeconds(1))
+                            .build())
+                    .build();
+            Bucket bucket = proxyManager.builder().build(key, configSupplier);
+            return !bucket.tryConsume(1);
+        } else {
+            // Fallback: in-memory sliding window
+            long now = System.currentTimeMillis();
+            java.util.Queue<Long> times = fallbackCounts.computeIfAbsent(clientIp,
+                    k -> new java.util.concurrent.ConcurrentLinkedQueue<>());
+            times.add(now);
+            while (!times.isEmpty() && times.peek() < now - 1000) {
+                times.poll();
+            }
+            return times.size() > requestsPerSecond;
         }
-        return times.size() > MAX_REQUESTS_PER_SECOND;
     }
 
     @RequestMapping("/api/**")
@@ -59,10 +116,17 @@ public class GatewayController {
         if (clientIp == null || clientIp.isEmpty()) {
             clientIp = request.getRemoteAddr();
         }
+        // Take first IP if there are multiple (proxy chain)
+        if (clientIp != null && clientIp.contains(",")) {
+            clientIp = clientIp.split(",")[0].trim();
+        }
 
         if (isRateLimited(clientIp)) {
             logGatewayFailure(request.getRequestURI(), "Rate limit exceeded for IP: " + clientIp, "RATE_LIMIT_EXCEEDED");
-            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body("Rate limit exceeded. Try again later.");
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .header("X-RateLimit-Limit", String.valueOf(requestsPerSecond))
+                    .header("Retry-After", "1")
+                    .body("Rate limit exceeded. Max " + requestsPerSecond + " requests/sec. Try again later.");
         }
 
         String uri = request.getRequestURI();
@@ -119,28 +183,30 @@ public class GatewayController {
         }
 
         // Forward request
+        final String finalTargetUrl = targetUrl;
         try {
-            return restTemplate.execute(targetUrl, method,
+            return restTemplate.execute(finalTargetUrl, method,
                     clientHttpRequest -> {
-                        // Copy request headers
                         Collections.list(request.getHeaderNames()).forEach(headerName -> {
                             if (!headerName.equalsIgnoreCase("content-length") && !headerName.equalsIgnoreCase("host")) {
                                 clientHttpRequest.getHeaders().put(headerName, Collections.list(request.getHeaders(headerName)));
                             }
                         });
-                        // Copy request body stream
                         request.getInputStream().transferTo(clientHttpRequest.getBody());
                     },
                     clientHttpResponse -> {
-                        // Copy response headers and body
                         HttpHeaders responseHeaders = new HttpHeaders();
-                        clientHttpResponse.getHeaders().forEach(responseHeaders::put);
+                        clientHttpResponse.getHeaders().forEach((headerName, headerValues) -> {
+                            if (!headerName.equalsIgnoreCase("transfer-encoding") && !headerName.equalsIgnoreCase("connection")) {
+                                responseHeaders.put(headerName, headerValues);
+                            }
+                        });
                         byte[] bodyBytes = clientHttpResponse.getBody().readAllBytes();
                         return new ResponseEntity<>(bodyBytes, responseHeaders, clientHttpResponse.getStatusCode());
                     }
             );
         } catch (Exception e) {
-            logGatewayFailure(uri, "Forwarding connection failed to URL " + targetUrl + ": " + e.getMessage(), "ERROR");
+            logGatewayFailure(uri, "Forwarding connection failed to URL " + finalTargetUrl + ": " + e.getMessage(), "ERROR");
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Gateway routing exception: " + e.getMessage());
         }

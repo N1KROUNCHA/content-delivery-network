@@ -1,0 +1,4 @@
+# Keep this file — it tells git the nginx/certs/ directory exists
+# but the actual TLS certificate and private key are gitignored.
+# Generate a self-signed certificate for local dev:
+#   openssl req -x509 -newkey rsa:4096 -keyout server.key -out server.crt -days 365 -nodes -subj "/CN=localhost"
