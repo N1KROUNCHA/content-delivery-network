@@ -359,5 +359,3 @@ content-delivery-network/
 This project is developed for research purposes in the **Computer Networks & Security Lab (CNSLAB)**.
 
 ---
-
-> ⚠️ **Security Notice**: Before deploying to production, rotate all credentials, use a proper secrets manager (AWS Secrets Manager, HashiCorp Vault), and replace the hardcoded JWT secret in `JwtUtils.java` with an environment-variable-driven key.
