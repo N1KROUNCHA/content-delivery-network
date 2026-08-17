@@ -1,6 +1,6 @@
-# PQC-Secured Content Delivery Network
+# PQC-Secured Package Delivery Network
 
-> A post-quantum cryptography (PQC) hardened microservices CDN built with Java/Spring Boot.  
+> A post-quantum cryptography (PQC) hardened microservices PDN built with Java/Spring Boot.  
 > Files are signed with **CRYSTALS-Dilithium (ML-DSA)**, encrypted in transit with **CRYSTALS-Kyber (ML-KEM) + AES-256-GCM**, and delivered through a rate-limited API gateway with JWT authentication.
 
 [![Java](https://img.shields.io/badge/Java-21-orange)](https://openjdk.org/)
